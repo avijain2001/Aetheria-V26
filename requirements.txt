@@ -1,0 +1,3 @@
+# Aetheria Production Dependencies
+# PostgreSQL adapter for cloud persistence (Render, Neon, Supabase)
+psycopg2-binary>=2.9.9

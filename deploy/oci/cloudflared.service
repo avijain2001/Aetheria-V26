@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudflare Tunnel for Aetheria
+After=network-online.target aetheria.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cloudflared --config /etc/cloudflared/config.yml tunnel run aetheria
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Legal Disclaimer &amp; Terms — Aetheria</title>
+  <meta name="description" content="Legal Disclaimer, Terms of Use, Privacy Policy, and Intellectual Property Notice for Aetheria World Intelligence.">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    :root {
+      --legal-bg: #07090d;
+      --legal-surface: #0e121a;
+      --legal-border: #1e2634;
+      --legal-text: #e2e8f0;
+      --legal-muted: #94a3b8;
+      --legal-accent: #38bdf8;
+    }
+    [data-theme="light"] {
+      --legal-bg: #f8fafc;
+      --legal-surface: #ffffff;
+      --legal-border: #e2e8f0;
+      --legal-text: #0f172a;
+      --legal-muted: #64748b;
+      --legal-accent: #0284c7;
+    }
+    body.legal-page {
+      background: var(--legal-bg);
+      color: var(--legal-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0 0 80px 0;
+      line-height: 1.68;
+    }
+    .legal-nav-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 14, 22, 0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--legal-border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    [data-theme="light"] .legal-nav-bar {
+      background: rgba(255, 255, 255, 0.92);
+    }
+    .legal-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--legal-accent);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border: 1px solid var(--legal-border);
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+    .legal-back-btn:hover {
+      background: var(--legal-surface);
+      border-color: var(--legal-accent);
+    }
+    .legal-container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 36px 20px 60px;
+    }
+    .legal-header {
+      border-bottom: 1px solid var(--legal-border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .legal-brand {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--legal-accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .legal-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 10px;
+      line-height: 1.25;
+    }
+    .legal-meta {
+      font-size: 13px;
+      color: var(--legal-muted);
+    }
+    .legal-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--legal-border);
+      margin-bottom: 32px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .legal-tab {
+      background: transparent;
+      border: none;
+      color: var(--legal-muted);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .legal-tab:hover {
+      color: var(--legal-text);
+    }
+    .legal-tab.active {
+      color: var(--legal-accent);
+      border-bottom-color: var(--legal-accent);
+    }
+    .legal-content {
+      font-family: "Merriweather", Georgia, serif;
+      font-size: 15px;
+      color: var(--legal-text);
+    }
+    .legal-content h2 {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin: 36px 0 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--legal-border);
+      color: var(--legal-text);
+    }
+    .legal-content h2:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+    .legal-content p, .legal-content ul {
+      margin: 0 0 16px;
+      line-height: 1.75;
+    }
+    .legal-content ul {
+      padding-left: 24px;
+    }
+    .legal-content li {
+      margin-bottom: 6px;
+    }
+    .legal-callout {
+      background: var(--legal-surface);
+      border-left: 4px solid var(--legal-accent);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 24px 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+    }
+    .legal-footer-signature {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--legal-border);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      color: var(--legal-muted);
+    }
+    .legal-footer-signature b {
+      color: var(--legal-text);
+      display: block;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body class="legal-page">
+  <nav class="legal-nav-bar">
+    <a href="/" class="legal-back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      <span>Back to Aetheria Live</span>
+    </a>
+    <span style="font-size:12px;font-weight:700;letter-spacing:0.1em;color:var(--legal-muted)">OFFICIAL NOTICE</span>
+  </nav>
+
+  <main class="legal-container">
+    <header class="legal-header">
+      <div class="legal-brand">AETHERIA WORLD INTELLIGENCE</div>
+      <h1 class="legal-title">Legal Disclaimer, Terms of Use &amp; Intellectual Property Notice</h1>
+      <div class="legal-meta">Last Updated: September 2026 · Effective Immediately</div>
+    </header>
+
+    <div class="legal-tabs" id="legalTabs">
+      <button class="legal-tab active" data-target="sec-disclaimer">Legal Disclaimer</button>
+      <button class="legal-tab" data-target="sec-terms">Terms of Use</button>
+      <button class="legal-tab" data-target="sec-privacy">Privacy Policy</button>
+      <button class="legal-tab" data-target="sec-ip">Copyright &amp; IP</button>
+    </div>
+
+    <article class="legal-content" id="legalContent">
+      <section id="sec-disclaimer">
+        <div class="legal-callout">
+          <strong>Important Notice:</strong> Aetheria is an information, news-intelligence and knowledge-discovery platform designed to collect, organise, analyse, connect and present information obtained from various publicly available, third-party and other sources. By accessing or using Aetheria, you agree to this notice in full.
+        </div>
+
+        <h2>1. INFORMATIONAL PURPOSE ONLY</h2>
+        <p>All information, news, articles, headlines, summaries, analyses, classifications, rankings, signals, alerts, timelines, event relationships, AI-generated explanations, predictions or other material displayed or generated by Aetheria is provided <strong>for general informational, educational and research purposes only</strong>.</p>
+        <p>Aetheria is not intended to constitute or provide:</p>
+        <ul>
+          <li>investment, financial or securities advice;</li>
+          <li>legal advice;</li>
+          <li>tax advice;</li>
+          <li>accounting advice;</li>
+          <li>medical or health advice;</li>
+          <li>business or commercial advice;</li>
+          <li>political or electoral advice;</li>
+          <li>trading or investment recommendations; or</li>
+          <li>any other professional advice.</li>
+        </ul>
+        <p>Users should independently verify information and obtain appropriate professional advice before taking any action based upon information obtained through Aetheria.</p>
+
+        <h2>2. NO REPRESENTATION OR GUARANTEE OF ACCURACY</h2>
+        <p>Aetheria, its developer, owner, operator, contributors, affiliates, associates, service providers, agents and any person associated with the development or operation of Aetheria <strong>do not represent, warrant or guarantee</strong> that any news, information, source, report, article, statement, data point, image, video, document, link, analysis or other material displayed through the platform is accurate, complete, current, authentic, reliable, verified, uninterrupted or error-free.</p>
+        <p>Information may contain errors, omissions, delays, inaccuracies, outdated information, conflicting reports, misinterpretations or information that may subsequently be corrected or withdrawn by the original source.</p>
+        <p>The appearance of any information or source on Aetheria <strong>does not constitute confirmation, endorsement, authentication, verification or adoption of that information by Aetheria or its developer.</strong></p>
+
+        <h2>3. THIRD-PARTY SOURCES</h2>
+        <p>Aetheria may obtain or reference information from third-party websites, news organisations, publishers, government websites, public databases, financial information providers, social platforms, feeds, APIs and other sources.</p>
+        <p>Aetheria does not necessarily own, control, endorse, authenticate or independently verify the information published by such third parties.</p>
+        <p>Any reference, hyperlink, attribution, source name, quotation, article, report or other third-party material remains the responsibility of the respective source or owner.</p>
+        <p>Users should refer to the original source for the complete context and independently verify material information.</p>
+
+        <h2>4. AI-GENERATED INFORMATION</h2>
+        <p>Aetheria may use artificial intelligence, machine learning, automated processing and algorithmic systems to identify, classify, cluster, summarise, connect, prioritise or explain information.</p>
+        <p>AI-generated or algorithmically generated content may contain errors, omissions, incorrect associations, incomplete context or other inaccuracies.</p>
+        <p>AI-generated analysis or connections <strong>must not be treated as independently verified facts unless expressly supported by identified evidence or sources.</strong></p>
+        <p>Aetheria does not guarantee that an AI-generated summary, classification, relationship, relevance assessment, alert or other output is correct.</p>
+
+        <h2>5. NEWS, EVENTS AND STORY CONTINUITY</h2>
+        <p>Aetheria may connect multiple reports relating to the same event, organisation, person, company, development or subject and may maintain a continuing “story” or event record.</p>
+        <p>Such continuity is an analytical function of the platform and <strong>does not constitute a representation that all connected reports are factually identical, mutually consistent or independently verified.</strong></p>
+        <p>Where information is developing, disputed, conflicting or uncertain, Aetheria may identify such uncertainty. However, users remain responsible for independently assessing the underlying information and sources.</p>
+
+        <h2>6. NO RESPONSIBILITY FOR USER ACTIONS</h2>
+        <p>Any person who accesses, reads, interprets, relies upon, shares, acts upon, or otherwise uses information obtained through Aetheria does so <strong>at their own discretion and responsibility</strong>.</p>
+        <p>Aetheria, its developer, owner, operator, contributors, affiliates, associates, service providers, agents and persons involved in its development or operation shall not be responsible for any decision, action, omission, transaction, investment, trade, purchase, sale, communication, publication, business decision or other consequence arising from or relating to a user's use of information available through Aetheria, <strong>to the maximum extent permitted by applicable law.</strong></p>
+
+        <h2>7. NO LIABILITY FOR THIRD-PARTY INFORMATION</h2>
+        <p>To the maximum extent permitted by applicable law, Aetheria and the persons associated with it shall not be responsible or liable for any loss, damage, claim, cost, expense or consequence arising from:</p>
+        <ul>
+          <li>inaccuracies or errors in third-party information;</li>
+          <li>incorrect, incomplete or outdated news;</li>
+          <li>source errors or omissions;</li>
+          <li>delayed publication or transmission of information;</li>
+          <li>changes or corrections made by original sources;</li>
+          <li>unavailable or broken third-party links;</li>
+          <li>technical failures of external APIs, feeds or services;</li>
+          <li>AI-generated errors;</li>
+          <li>incorrect categorisation or clustering;</li>
+          <li>conflicting reports;</li>
+          <li>reliance upon information displayed on Aetheria; or</li>
+          <li>any action or decision taken by a user based upon such information.</li>
+        </ul>
+        <p>Nothing in this disclaimer shall exclude or limit any liability that cannot lawfully be excluded or limited under applicable law.</p>
+
+        <h2>8. NO ENDORSEMENT</h2>
+        <p>The inclusion of any person, organisation, company, government body, publication, website, product, service, viewpoint or source on Aetheria does not imply endorsement, sponsorship, affiliation, association, approval or verification by Aetheria or its developer.</p>
+        <p>Similarly, the absence of any source, person, organisation, event or story from Aetheria should not be interpreted as an indication of its importance, validity or non-existence.</p>
+
+        <h2>9. LINKS TO EXTERNAL WEBSITES</h2>
+        <p>Aetheria may provide links to external websites and third-party sources for reference and further reading. Aetheria does not control those websites and is not responsible for their content, availability, accuracy, security, privacy practices or subsequent changes. Users accessing external websites do so at their own risk and subject to the terms and policies of those websites.</p>
+
+        <h2>10. AVAILABILITY AND TECHNICAL OPERATION</h2>
+        <p>Aetheria is provided on an “as available” and “as is” basis, subject to applicable law. The platform may experience interruptions, delays, maintenance periods, technical failures, data-feed failures, source outages, API limitations, connectivity issues or other operational problems. Aetheria does not guarantee uninterrupted availability, continuous data delivery or that every relevant development will be captured or displayed.</p>
+
+        <h2>11. USER VERIFICATION RESPONSIBILITY</h2>
+        <p>For information that may materially affect a user's legal, financial, professional, commercial, personal or other decisions, users should verify the information against the original source and, where appropriate, obtain independent professional advice.</p>
+        <p><strong>Aetheria is an information-intelligence tool, not a substitute for independent judgment.</strong></p>
+      </section>
+
+      <section id="sec-terms">
+        <h2>12. TERMS OF USE</h2>
+        <p>By accessing Aetheria, you agree not to use the service for any unlawful purpose, not to attempt to circumvent security controls, and not to engage in abusive scraping or denial of service attacks that impair operational availability for other users.</p>
+        <p>Aetheria reserves the right to modify, suspend, or terminate access to features or APIs at any time without prior notice.</p>
+      </section>
+
+      <section id="sec-privacy">
+        <h2>13. PRIVACY &amp; CLIENT-SIDE MEMORY</h2>
+        <p>Aetheria prioritizes user privacy. User preferences, followed stories, radar topics, and reading history are retained on the client side via browser LocalStorage wherever feasible, minimizing unnecessary server-side profile persistence.</p>
+        <p>Anonymous operational telemetry is used solely to calibrate system reliability, source health, and clustering accuracy without selling personal information to third parties.</p>
+      </section>
+
+      <section id="sec-ip">
+        <h2>14. INTELLECTUAL PROPERTY — AETHERIA</h2>
+        <p>The original software, source code, architecture, interface design, visual design, original written material, original documentation, databases, workflows, algorithms, system concepts, original analytical frameworks and other original materials created specifically for Aetheria are the intellectual property of <strong>Avinash Jain</strong>, subject to applicable law and any rights of third parties.</p>
+        <div class="legal-callout">
+          <strong>Developed by Avinash Jain.</strong><br>
+          <strong>Copyright © 2026 Avinash Jain. All rights reserved.</strong>
+        </div>
+        <p>No copyright registration is represented or implied by this notice. The absence of a copyright registration does not, by itself, mean that original copyrightable material is free for copying or unauthorised use. Copyright registration is a separate process under applicable law.</p>
+
+        <h2>15. THIRD-PARTY CONTENT AND COPYRIGHT</h2>
+        <p>News articles, photographs, videos, logos, trademarks, publications, excerpts, data and other third-party materials displayed, referenced or linked through Aetheria belong to their respective copyright owners, publishers or licensors.</p>
+        <p>Aetheria does not claim ownership of third-party intellectual property merely because such material is indexed, referenced, linked, summarised or displayed through the platform. All third-party rights remain with their respective owners.</p>
+
+        <h2>16. UNAUTHORISED USE</h2>
+        <p>Except where permitted by law or expressly authorised by Avinash Jain, users may not reproduce, copy, modify, distribute, commercially exploit, reverse engineer, scrape, reproduce the substantial structure of, or create derivative works from Aetheria's original software, proprietary architecture, design, original content or other protected materials.</p>
+
+        <h2>17. CHANGES TO THIS NOTICE &amp; ACCEPTANCE</h2>
+        <p>Aetheria may modify, update or amend this disclaimer, terms or intellectual-property notice from time to time. The latest version published on the Aetheria website shall apply to future use of the platform, subject to applicable law.</p>
+        <p>By accessing or using Aetheria, you acknowledge that you have read and understood this Disclaimer and agree that information obtained through the platform is used at your own discretion and responsibility. If you do not agree with these terms, you should discontinue use of the platform.</p>
+      </section>
+    </article>
+
+    <footer class="legal-footer-signature">
+      <b>AETHERIA WORLD INTELLIGENCE</b>
+      <span>Know what matters. before you go looking.</span><br>
+      <span>Developed by Avinash Jain · Copyright © 2026 Avinash Jain. All rights reserved.</span>
+    </footer>
+  </main>
+
+  <script>
+    // Theme sync
+    const savedTheme = localStorage.getItem('aetheria-theme') || 'dark';
+    document.documentElement.dataset.theme = savedTheme;
+
+    // Tabs navigation
+    const tabs = document.querySelectorAll('.legal-tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const targetId = tab.dataset.target;
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Hash check
+    if (window.location.hash) {
+      const h = window.location.hash.replace('#', '');
+      const map = { 'terms': 'sec-terms', 'privacy': 'sec-privacy', 'copyright': 'sec-ip', 'ip': 'sec-ip', 'disclaimer': 'sec-disclaimer' };
+      const tid = map[h];
+      if (tid) {
+        const el = document.getElementById(tid);
+        if (el) {
+          setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 100);
+          tabs.forEach(t => t.classList.toggle('active', t.dataset.target === tid));
+        }
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+[Unit]
+Description=Aetheria World Experience Engine
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/aetheria
+ExecStart=/usr/bin/python3 /opt/aetheria/server.py
+Restart=always
+RestartSec=5
+Environment=AETHERIA_HOST=127.0.0.1
+Environment=AETHERIA_PORT=8000
+Environment=AETHERIA_CITY=
+Environment=AETHERIA_STATE=
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

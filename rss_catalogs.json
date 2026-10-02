@@ -1,0 +1,87 @@
+[
+  {
+    "name": "NDTV RSS",
+    "url": "https://www.ndtv.com/rss",
+    "provider": "NDTV"
+  },
+  {
+    "name": "The Indian Express RSS",
+    "url": "https://indianexpress.com/rss/",
+    "provider": "The Indian Express"
+  },
+  {
+    "name": "Times of India RSS",
+    "url": "https://timesofindia.indiatimes.com/rss.cms",
+    "provider": "Times of India"
+  },
+  {
+    "name": "Hindustan Times RSS",
+    "url": "https://www.hindustantimes.com/rss",
+    "provider": "Hindustan Times"
+  },
+  {
+    "name": "India Today RSS",
+    "url": "https://www.indiatoday.in/rss",
+    "provider": "India Today"
+  },
+  {
+    "name": "Amar Ujala RSS",
+    "url": "https://www.amarujala.com/rss",
+    "provider": "Amar Ujala"
+  },
+  {
+    "name": "Business Standard Hindi RSS",
+    "url": "https://hindi.business-standard.com/rss-feeds",
+    "provider": "Business Standard Hindi"
+  },
+  {
+    "name": "OneIndia Odia RSS",
+    "url": "https://odia.oneindia.com/rss/",
+    "provider": "OneIndia Odia"
+  },
+  {
+    "name": "OneIndia Telugu RSS",
+    "url": "https://telugu.oneindia.com/rss/",
+    "provider": "OneIndia Telugu"
+  },
+  {
+    "name": "Economic Times RSS",
+    "url": "https://economictimes.indiatimes.com/rss.cms",
+    "provider": "Economic Times"
+  },
+  {
+    "name": "ET Government RSS",
+    "url": "https://government.economictimes.indiatimes.com/rss",
+    "provider": "ET Government"
+  },
+  {
+    "name": "ET B2B RSS",
+    "url": "https://b2b.economictimes.indiatimes.com/rss",
+    "provider": "ET B2B"
+  },
+  {
+    "name": "ET Infra RSS",
+    "url": "https://infra.economictimes.indiatimes.com/rss",
+    "provider": "ET Infra"
+  },
+  {
+    "name": "ET CFO RSS",
+    "url": "https://cfo.economictimes.indiatimes.com/rss",
+    "provider": "ET CFO"
+  },
+  {
+    "name": "ET LegalWorld RSS",
+    "url": "https://legal.economictimes.indiatimes.com/rss",
+    "provider": "ET LegalWorld"
+  },
+  {
+    "name": "ET BFSI RSS",
+    "url": "https://bfsi.economictimes.indiatimes.com/rss",
+    "provider": "ET BFSI"
+  },
+  {
+    "name": "ET Sustainability RSS",
+    "url": "https://sustainability.economictimes.indiatimes.com/rss",
+    "provider": "ET Sustainability"
+  }
+]
