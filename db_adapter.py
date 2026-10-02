@@ -145,8 +145,12 @@ class DatabaseConnection:
         # Translate SQLite GROUP_CONCAT to PostgreSQL STRING_AGG
         # Two arguments: GROUP_CONCAT(expr, 'sep') -> STRING_AGG(expr, 'sep')
         q = re.sub(r"(?i)\bGROUP_CONCAT\s*\(\s*([^,]+?)\s*,\s*('[^']+'|\"[^\"]+\")\s*\)", r"STRING_AGG(\1, \2)", q)
-        # One argument: GROUP_CONCAT(expr) -> STRING_AGG(expr, ',')
-        q = re.sub(r"(?i)\bGROUP_CONCAT\s*\(\s*([^)]+?)\s*\)", r"STRING_AGG(\1, ',')", q)
+                # One argument: GROUP_CONCAT(expr) -> STRING_AGG(expr, ',')
+        q = re.sub(r"(?i)\bGROUP_CONCAT\s*\(\s*([^\)]+?)\s*\)", r"STRING_AGG(\1, ',')", q)
+
+        # Replace SQLite scalar two‑argument MAX() with PostgreSQL GREATEST()
+        # Matches MAX(expr1, expr2) where expr1/expr2 do not contain commas or parentheses.
+        q = re.sub(r"(?i)\bMAX\s*\(\s*([^,()]+?)\s*,\s*([^,()]+?)\s*\)", r"GREATEST(\1, \2)", q)
 
         return q
 
