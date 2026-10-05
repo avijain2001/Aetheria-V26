@@ -368,12 +368,15 @@
     }
   }
   function storyStackItems() {
-    const stack = state.bootstrap?.home?.stack || [];
-    return stack.filter(x => x && x.id).slice(0, Math.max(10, stack.length));
+    if (state.route === 'Home') {
+      const stack = state.bootstrap?.home?.stack || [];
+      return stack.filter(x => x && x.id).slice(0, Math.max(10, stack.length));
+    }
+    return state.articles.slice(0, 5);
   }
 
-  function renderStack(customItems) {
-    const items = customItems || storyStackItems();
+  function renderStack() {
+    const items = storyStackItems();
     if (!items.length) return '<div class="hero-card hero-feature"><div class="feature-visual"><div class="visual-label">AETHERIA</div><div class="visual-grid"></div><div class="visual-caption">WAITING FOR NETWORK</div></div><div class="story-card"><div class="story-top"><span class="category-label">AETHERIA</span></div><h1 class="story-title">No active story is available yet.</h1><p class="story-summary">The live engine has not supplied a current story. Aetheria will not fabricate one.</p></div></div>';
     const i = ((state.stackIndex % items.length) + items.length) % items.length;
     const s = items[i];
@@ -450,15 +453,19 @@
       return `<div class="future-row" ${action}><div class="future-text"><small>${esc(x.horizon || '')}</small><h3 ${langAttr(x,x.title)}>${esc(x.title)}</h3><time datetime="${esc(x.start_ts?new Date(x.start_ts*1000).toISOString():'')}">${esc(date)}</time></div>${actionTools(x)}</div>`;
     }).join('')}</div>` : '<div class="empty-state">No active upcoming events are available.</div>';
     const readRows = read.slice(0,1).map(x => {
+      const url=sourceUrl(x), action=url ? `data-source-url="${esc(url)}"` : `data-open-event="${esc(x.event_id || x.id || '')}"`;
       const image=safeSourceUrl(x.image_url);
       const source=String(x.domain || x.latest_domain || x.source_domains?.[0] || '').trim();
       const published=x.latest_published || x.published || x.last_seen;
       const timeLabel=published?`${Number(x.latest_published || x.published)>0?'Published':'Observed'} ${formatPublished(published)}`:'';
       const reportCount=Number(x.sources ?? x.source_count);
+      const impact=Number(x?.event?.significance || x?.intelligence?.impact);
+      const scoreClass = impact >= 0.70 ? 'impact-high' : impact >= 0.40 ? 'impact-medium' : 'impact-low';
+      const impactBadge = Number.isFinite(impact) && impact>0 ? `<span class="impact-icon ${scoreClass}" style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; margin-left:8px; border:1px solid var(--line-2); background:var(--surface); vertical-align:middle;" title="Impact ${Math.round(impact*100)}/100"><span class="impact-inline-score" style="font-size:10px;line-height:1;position:static;">${Math.round(impact*100)}</span></span>` : '';
       const readMeta=[source,timeLabel,x.status,Number.isFinite(reportCount)&&reportCount>0?`${reportCount} reports`: ''].filter(Boolean);
       const context=String(x.description || '').trim();
       const imageMarkup=image?`<div class="read-card-image banner-img" role="img" aria-label="Article image" style="background-image:url('${esc(image)}')"></div>`:'';
-      return `<div class="read-card-content ${image?'has-image':'no-image'}">${imageMarkup}<small class="read-card-category">${esc((x.topic || 'AETHERIA READ').toUpperCase())}</small><h3 ${langAttr(x,x.title)}>${esc(x.title)}</h3>${!image&&readMeta.length?`<div class="read-card-meta">${readMeta.map(v=>`<span>${esc(v)}</span>`).join('')}</div>`:''}${!image&&context?`<p class="read-card-excerpt" ${langAttr(x,context)}>${esc(context)}</p>`:''}<div class="read-card-actions">${actionTools(x)}</div></div>`;
+      return `<div class="read-card-content ${image?'has-image':'no-image'}" ${action} style="cursor:pointer" tabindex="0">${imageMarkup}<small class="read-card-category">${esc((x.topic || 'AETHERIA READ').toUpperCase())}</small><h3 ${langAttr(x,x.title)}>${esc(x.title)}${impactBadge}</h3>${!image&&readMeta.length?`<div class="read-card-meta">${readMeta.map(v=>`<span>${esc(v)}</span>`).join('')}</div>`:''}${!image&&context?`<p class="read-card-excerpt" ${langAttr(x,context)}>${esc(context)}</p>`:''}<div class="read-card-actions">${actionTools(x)}</div></div>`;
     }).join('');
 
     const latestRows = latest.length ? latest.map((x,i) => {
@@ -491,7 +498,10 @@
       const scheduled=Number(x.start_ts)>0, url=scheduled?safeSourceUrl(x.url):'';
       const action=url?`data-source-url="${esc(url)}"`:scheduled?'':`data-open-event="${esc(x.id)}"`;
       const description=scheduled?x.description:(x.what_changed || x.why_monitoring || '');
-      return `<article class="changed-card" ${action}><div class="changed-icon">→</div><div class="changed-label">${esc(x.lifecycle || 'ACTIVE')}</div><h3 ${langAttr(x,x.title)}>${esc(x.title)}</h3>${description?`<p ${langAttr(x,description)}>${esc(description)}</p>`:''}<div class="changed-meta"><span class="changed-info">${esc(x.last_seen ? formatAge(x.last_seen) : '')}</span>${actionTools(x)}<button type="button" class="news-card-action follow-remove" data-unfollow-event="${esc(x.id)}" aria-label="Remove from Follow-up" title="Remove from Follow-up">−</button></div></article>`;
+      const impact=Number(x?.event?.significance || x?.intelligence?.impact);
+      const scoreClass = impact >= 0.70 ? 'impact-high' : impact >= 0.40 ? 'impact-medium' : 'impact-low';
+      const impactBadge = Number.isFinite(impact) && impact>0 ? `<span class="impact-icon ${scoreClass}" style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; margin-left:8px; border:1px solid var(--line-2); background:var(--surface); vertical-align:middle;" title="Impact ${Math.round(impact*100)}/100"><span class="impact-inline-score" style="font-size:10px;line-height:1;position:static;">${Math.round(impact*100)}</span></span>` : '';
+      return `<article class="changed-card" ${action} style="cursor:pointer" tabindex="0"><div class="changed-icon">→</div><div class="changed-label">${esc(x.lifecycle || 'ACTIVE')}</div><h3 ${langAttr(x,x.title)}>${esc(x.title)}${impactBadge}</h3>${description?`<p ${langAttr(x,description)}>${esc(description)}</p>`:''}<div class="changed-meta"><span class="changed-info">${esc(x.last_seen ? formatAge(x.last_seen) : '')}</span>${actionTools(x)}<button type="button" class="news-card-action follow-remove" data-unfollow-event="${esc(x.id)}" aria-label="Remove from Follow-up" title="Remove from Follow-up">−</button></div></article>`;
     }).join('')}</div>`;
   }
 
@@ -542,16 +552,17 @@
       let stackHtml = '';
       let listItems = state.articles;
       
-      if (isCategory && state.articles.length >= 10) {
+      if (state.articles.length >= 10) {
         const stackItems = state.articles.slice(0, 5);
         const developingItems = state.articles.slice(5, 10);
         listItems = state.articles.slice(10);
-        stackHtml = `<section class="hero">${renderStack(stackItems)}<aside class="hero-card developing"><div class="dev-head"><b>LATEST IN ${esc(route.toUpperCase())}</b><a data-route="Latest">View all →</a></div>${developingHTML(developingItems)}</aside></section>`;
+        const devHeadStr = isCategory ? `LATEST IN ${esc(route.toUpperCase())}` : 'DEVELOPING IN LATEST';
+        stackHtml = `<section class="hero">${renderStack()}<aside class="hero-card developing"><div class="dev-head"><b>${devHeadStr}</b><a data-route="Latest">View all →</a></div>${developingHTML(developingItems)}</aside></section>`;
         if (stackItems.length) startStackTimer();
-      } else if (isCategory && state.articles.length > 5) {
+      } else if (state.articles.length > 5) {
         const stackItems = state.articles.slice(0, 5);
         listItems = state.articles.slice(5);
-        stackHtml = `<section class="hero">${renderStack(stackItems)}</section>`;
+        stackHtml = `<section class="hero">${renderStack()}</section>`;
         if (stackItems.length) startStackTimer();
       }
 
@@ -856,7 +867,7 @@
   function clearStackTimer() { if (state.stackTimer) clearInterval(state.stackTimer); state.stackTimer = null; }
   function startStackTimer() {
     clearStackTimer();
-    if (state.route !== 'Home' || state.stackPaused) return;
+    if (state.stackPaused) return;
     const items = storyStackItems(); if (items.length < 2) return;
     state.stackTimer = setInterval(() => moveStack(1), 9000);
   }
