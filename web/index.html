@@ -1151,7 +1151,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 .hero-feature .story-card{
   position:relative;
   justify-content:flex-start;
-  padding:28px 32px 112px;
+  padding:28px 32px 180px;
   overflow:hidden;
 }
 .hero-feature .story-title{
@@ -1173,15 +1173,15 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   line-height:1.4;
   display:-webkit-box;
   -webkit-box-orient:vertical;
-  -webkit-line-clamp:2;
-  max-height:calc(1.4em * 2);
+  -webkit-line-clamp:3;
+  max-height:calc(1.4em * 3);
   overflow:hidden;
 }
 .hero-feature .story-source{
   position:absolute;
   left:32px;
   right:32px;
-  bottom:78px;
+  bottom:140px;
   min-width:0;
   overflow:hidden;
 }
@@ -1190,8 +1190,17 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   position:absolute;
   left:32px;
   right:32px;
-  bottom:53px;
+  bottom:120px;
   margin:0;
+}
+.hero-feature .hero-action-row{
+  position:absolute;
+  left:32px;
+  right:32px;
+  bottom:65px;
+  display:flex;
+  gap:10px;
+  align-items:center;
 }
 .hero-feature .story-stack-controls{
   position:absolute;
@@ -1200,6 +1209,28 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   bottom:15px;
   margin:0;
   padding:0;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.hero-feature .story-stack-controls button {
+  background:var(--surface-3);
+  border:1px solid var(--line);
+  padding:7px 16px;
+  border-radius:20px;
+  font-size:11px;
+  color:var(--text);
+  font-weight:600;
+  transition:all 0.2s ease;
+}
+.hero-feature .story-stack-controls button:hover {
+  background:var(--surface-2);
+  border-color:var(--cyan);
+}
+.hero-feature .story-stack-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--soft);
 }
 
 /* Developing: each row gets a real content box; long titles cannot escape the fixed sidebar. */

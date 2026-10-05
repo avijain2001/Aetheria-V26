@@ -372,8 +372,8 @@
     return stack.filter(x => x && x.id).slice(0, Math.max(10, stack.length));
   }
 
-  function renderStack() {
-    const items = storyStackItems();
+  function renderStack(customItems) {
+    const items = customItems || storyStackItems();
     if (!items.length) return '<div class="hero-card hero-feature"><div class="feature-visual"><div class="visual-label">AETHERIA</div><div class="visual-grid"></div><div class="visual-caption">WAITING FOR NETWORK</div></div><div class="story-card"><div class="story-top"><span class="category-label">AETHERIA</span></div><h1 class="story-title">No active story is available yet.</h1><p class="story-summary">The live engine has not supplied a current story. Aetheria will not fabricate one.</p></div></div>';
     const i = ((state.stackIndex % items.length) + items.length) % items.length;
     const s = items[i];
@@ -500,7 +500,9 @@
     return rows.map((a,i) => {
       const url = sourceUrl(a), action = url ? `data-source-url="${esc(url)}"` : (a.event_id ? `data-open-event="${esc(a.event_id)}"` : '');
       const image = a.image_url ? `<img src="${esc(a.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove();this.parentElement.classList.add('empty')">` : '';
-      const impact=Number(a?.event?.significance), impactBadge=Number.isFinite(impact) && impact>0 ? `<span class="impact-score">Impact ${Math.round(impact*100)}/100</span>` : '';
+      const impact=Number(a?.event?.significance);
+      const scoreClass = impact >= 0.70 ? 'impact-high' : impact >= 0.40 ? 'impact-medium' : 'impact-low';
+      const impactBadge = Number.isFinite(impact) && impact>0 ? `<span class="impact-icon ${scoreClass}" style="display:inline-grid; width:22px; height:22px; border-radius:50%; margin-left:8px; border:1px solid var(--line-2); background:var(--surface); vertical-align:middle;" title="Impact ${Math.round(impact*100)}/100"><span class="impact-inline-score" style="font-size:10px;">${Math.round(impact*100)}</span></span>` : '';
       return `<article class="latest-row ${i===0?'featured':''}" ${action}>${clockMarkup(a.published,a.fetched)}<div class="latest-thumb-slot ${image?'':'empty'}">${image}</div><div class="latest-main"><span class="latest-cat ${topicClass(a.topic)}">${esc((a.topic || 'WORLD').toUpperCase())}</span><h3 ${langAttr(a,a.title)}>${esc(a.title)}</h3><p>${esc(articleMeta(a))}${impactBadge}</p></div><div class="latest-actions">${actionTools(a)}<button class="latest-arrow" type="button" aria-label="Open source" title="Open source">↗</button></div></article>`;
     }).join('');
   }
@@ -525,7 +527,7 @@
 
   async function renderArticleRoute(route) {
     const host = $('mainView');
-    host.innerHTML = `<section class="route-page"><div class="section-heading"><div><span class="section-kicker">LIVE STREAM</span><h1>${esc(routeLabel(route))}</h1><p class="route-sub">${esc(routeDescription(route))}</p></div></div><div class="latest-card">${loadingRows()}</div></section>`;
+    host.innerHTML = `<section class="route-page"><div class="section-heading"><div><span class="section-kicker">LIVE STREAM</span><h1>${esc(routeLabel(route))}</h1><p class="route-sub">${esc(routeDescription(route))}</p></div></div><div class="route-stack-container" style="margin-bottom: 24px;"></div><div class="latest-card">${loadingRows()}</div></section>`;
     const seq = ++state.requestSeq;
     try {
       const params = new URLSearchParams({limit:'80'});
@@ -534,10 +536,19 @@
       else if (!['Latest'].includes(route)) params.set('topic', routeTopic(route));
       const d = await getJSON(`/api/articles?${params.toString()}`);
       if (seq !== state.requestSeq) return;
-      state.articles = d.articles || [];
-      host.querySelector('.latest-card').innerHTML = articleRows(state.articles);
+      state.articles = (d.articles || []).map(x => ({...x, event_id: x.event_id || x.id}));
+      
+      const isCategory = !['Latest'].includes(route);
+      const stackItems = isCategory ? state.articles.slice(0, 5) : [];
+      const listItems = isCategory ? state.articles.slice(5) : state.articles;
+
+      const stackHtml = stackItems.length ? `<section class="hero">${renderStack(stackItems)}</section>` : '';
+      host.querySelector('.route-stack-container').innerHTML = stackHtml;
+      host.querySelector('.latest-card').innerHTML = articleRows(listItems);
+      
       wireDynamicInteractions();
-    } catch {
+      if (stackItems.length) startStackTimer();
+    } catch (err) {
       host.querySelector('.latest-card').innerHTML = '<div class="empty-state">Live article data is temporarily unavailable. No substitute content has been generated.</div>';
     }
   }
@@ -642,7 +653,12 @@
     closeCategoryPanels(); closeAppearance();
     const dock=$('searchDock'); if(!dock) return;
     dock.classList.add('open'); dock.setAttribute('aria-hidden','false');
-    requestAnimationFrame(() => { const input=$('searchDockInput'); if(input){ input.value=state.searchQuery||''; input.focus(); input.select(); if(input.value.trim().length>=2) updateSearchSuggestions(); }});
+    const input=$('searchDockInput'); 
+    if(input){ 
+      input.value=''; 
+      input.focus(); 
+      updateSearchSuggestions(); 
+    }
   }
   function closeSearchDock() {
     const dock=$('searchDock'); if(!dock) return;

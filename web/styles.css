@@ -61,7 +61,7 @@
 
 
 /* V21.2 editorial density + intelligence layer */
-body{overflow-x:hidden}
+body{overflow-x:clip}
 .topbar,.ticker,.front-intro{contain:layout}
 .brand{max-width:248px}.brand-copy{overflow:hidden}.brand-copy strong{white-space:nowrap}.brand-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .search-shell{border-radius:10px}.search-shell:focus-within{border-color:color-mix(in srgb,var(--cyan) 48%,var(--line-2));box-shadow:0 0 0 1px color-mix(in srgb,var(--cyan) 10%,transparent),0 0 18px color-mix(in srgb,var(--cyan) 8%,transparent)}
