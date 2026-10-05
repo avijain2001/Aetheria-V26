@@ -539,15 +539,26 @@
       state.articles = (d.articles || []).map(x => ({...x, event_id: x.event_id || x.id}));
       
       const isCategory = !['Latest'].includes(route);
-      const stackItems = isCategory ? state.articles.slice(0, 5) : [];
-      const listItems = isCategory ? state.articles.slice(5) : state.articles;
+      let stackHtml = '';
+      let listItems = state.articles;
+      
+      if (isCategory && state.articles.length >= 10) {
+        const stackItems = state.articles.slice(0, 5);
+        const developingItems = state.articles.slice(5, 10);
+        listItems = state.articles.slice(10);
+        stackHtml = `<section class="hero">${renderStack(stackItems)}<aside class="hero-card developing"><div class="dev-head"><b>LATEST IN ${esc(route.toUpperCase())}</b><a data-route="Latest">View all →</a></div>${developingHTML(developingItems)}</aside></section>`;
+        if (stackItems.length) startStackTimer();
+      } else if (isCategory && state.articles.length > 5) {
+        const stackItems = state.articles.slice(0, 5);
+        listItems = state.articles.slice(5);
+        stackHtml = `<section class="hero">${renderStack(stackItems)}</section>`;
+        if (stackItems.length) startStackTimer();
+      }
 
-      const stackHtml = stackItems.length ? `<section class="hero">${renderStack(stackItems)}</section>` : '';
       host.querySelector('.route-stack-container').innerHTML = stackHtml;
       host.querySelector('.latest-card').innerHTML = articleRows(listItems);
       
       wireDynamicInteractions();
-      if (stackItems.length) startStackTimer();
     } catch (err) {
       host.querySelector('.latest-card').innerHTML = '<div class="empty-state">Live article data is temporarily unavailable. No substitute content has been generated.</div>';
     }
