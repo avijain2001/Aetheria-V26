@@ -137,23 +137,27 @@
     const rows = [...(state.followUp?.active || []), ...(state.followUp?.quiet || []), ...(state.followUp?.revived || []), ...(state.followUp?.followed || [])];
     return new Set(rows.map(x => String(x.id || x.event_id || '')).filter(Boolean));
   }
+  function storyImpactScore(item) {
+    const raw = Number(item?.intelligence?.impact ?? item?.event?.intelligence?.impact ?? item?.event?.significance ?? item?.significance ?? 0);
+    return Number.isFinite(raw) && raw > 0 ? Math.round(raw * 100) : 0;
+  }
+
   function actionTools(item) {
     const itemId=String(item?.id || '');
     const isSchedule=Boolean(item?.start_ts && item?.kind);
-    const eid = String(item?.event_id || item?.event?.id || (itemId.startsWith('evt_') || isSchedule ? itemId : '') || '');
+    const eid = String(item?.event_id || item?.event?.id || (itemId.startsWith('evt_') || isSchedule ? itemId : '') || itemId || '');
     if (!eid) return '';
-    const stateKnown=Boolean(state.followUp);
-    const following = stateKnown && followedIds().has(eid);
-    const followLabel=stateKnown?(following?'Following':'Follow'):'Unavailable';
-    const followStateLabel=stateKnown?(following?'Following this story':'Follow this story'):'Follow-Up status unavailable';
+    const following = followedIds().has(eid);
+    const followLabel = following ? 'Following' : 'Follow';
+    const followTitle = following ? 'Following this story (click to unfollow)' : 'Follow this story';
     return `<span class="news-card-actions" role="group" aria-label="Story actions">
-      <span class="signature-action"><button type="button" class="news-card-action ${following?'following':''} ${stateKnown?'':'unavailable'}" ${stateKnown?`data-follow-event="${esc(eid)}"`:'disabled'} aria-label="${followStateLabel}" title="${followStateLabel}"><span class="news-card-action-icon">${stateKnown?(following?'✓':'+'):'—'}</span></button><span class="news-card-action-label">${followLabel}</span></span>
-      ${isSchedule?'':`<span class="signature-action"><button type="button" class="news-card-action related" data-related-event="${esc(eid)}" aria-label="See related coverage" title="See related coverage"><span class="news-card-action-icon">◎</span></button><span class="news-card-action-label">Related</span></span>`}
+      <span class="signature-action"><button type="button" class="news-card-action ${following?'following':''}" data-follow-event="${esc(eid)}" aria-label="${followTitle}" title="${followTitle}"><span class="news-card-action-icon">${following?'✓':'+'}</span></button><span class="news-card-action-label">${followLabel}</span></span>
+      ${isSchedule?'':`<span class="signature-action"><button type="button" class="news-card-action related" data-related-event="${esc(eid)}" aria-label="Aetheria Read" title="Aetheria Read"><span class="news-card-action-icon">◎</span></button><span class="news-card-action-label">Read</span></span>`}
     </span>`;
   }
 
   let actionNoticeTimer=null;
-  function announceAction(message) {
+  function announceAction(message, type='info') {
     let notice=$('actionNotice');
     if (!notice) {
       notice=document.createElement('div');
@@ -163,10 +167,11 @@
       notice.setAttribute('aria-live','polite');
       document.body.append(notice);
     }
-    notice.textContent=message;
+    const icon = type==='error' ? '✕' : '✓';
+    notice.innerHTML = `<span class="action-notice-icon">${icon}</span><span class="action-notice-msg">${esc(message)}</span>`;
     notice.classList.add('visible');
     if (actionNoticeTimer) clearTimeout(actionNoticeTimer);
-    actionNoticeTimer=setTimeout(()=>notice.classList.remove('visible'),3200);
+    actionNoticeTimer=setTimeout(()=>notice.classList.remove('visible'),3000);
   }
   function recordTelemetry(eventId, action) {
     if (!eventId || !action) return;
@@ -285,7 +290,7 @@
       const modalPublished=latest?.published || e.latest_published || e.primary_published;
       $('storyModalMeta').textContent = [evidenceLabel,independentLabel,`${reportCount} distinct report${reportCount===1?'':'s'}`,evidence.official?`${evidence.official} official source${evidence.official===1?'':'s'}`:'',modalPublished?formatPublished(modalPublished):e.last_seen?`Observed ${formatPublished(e.last_seen)}`:''].filter(Boolean).join(' · ');
       if (intel) {
-        const impact = Number((e.intelligence || {}).impact ?? e.significance);
+        const impactScore = storyImpactScore(d.event || e);
         const channels = (d.impact_channels || []).slice(0,3);
         const analysis=ai.why || (d.context?.why || []).filter(Boolean).join(' · ');
         const timeline=(d.timeline || []).slice(0,6).reverse();
@@ -293,7 +298,7 @@
         intel.innerHTML = `
           <div class="story-modal-intel-head">
             <span class="story-modal-intel-label">AETHERIA ANALYSIS</span>
-            <span class="story-modal-intel-score">${Number.isFinite(impact) ? `Impact ${Math.round(impact*100)}/100` : ''}</span>
+            <span class="story-modal-intel-score">${impactScore > 0 ? `Impact ${impactScore}/100` : ''}</span>
           </div>
           ${analysis ? `<div class="story-modal-intel-text">${esc(analysis)}</div>` : ''}
           ${d.context?.latest_change ? `<div class="story-modal-related-title">LATEST OBSERVED CHANGE</div><div class="story-modal-intel-text">${esc(d.context.latest_change)}</div>` : ''}
@@ -326,7 +331,8 @@
       host.innerHTML = '<div class="market-item"><div><div class="market-name">MARKET PULSE</div><div class="market-value">Waiting for active market data…</div></div></div>';
       return;
     }
-    host.innerHTML = items.slice(0, 8).map(x => {
+    const displayList = items.length < 16 ? [...items, ...items, ...items] : [...items, ...items];
+    host.innerHTML = displayList.map(x => {
       const price = Number(x.price);
       const changeNum = x.change_num != null ? Number(x.change_num) : null;
       const pct = x.change != null ? Number(x.change) * 100 : null;
@@ -338,31 +344,33 @@
       const ptxt = pct != null && Number.isFinite(pct) ? `${sign}${pct.toFixed(2)}%` : '';
       const direction = cls === 'up' ? 'Rising' : cls === 'down' ? 'Falling' : movement == null || !Number.isFinite(movement) ? 'Change unavailable' : 'Unchanged';
       const change = abs || ptxt ? `<span class="change-value">${esc(abs || '—')}</span>${ptxt ? `<span class="change-pct">${esc(ptxt)}</span>` : ''}<span class="market-arrow" aria-hidden="true">${cls === 'down' ? '▼' : cls === 'up' ? '▲' : '='}</span>` : '<span class="change-value">—</span>';
-      return `<div class="market-item"><div class="market-name">${esc(x.label || x.symbol || x.group || 'MARKET')}</div><div class="market-data"><div class="market-value">${esc(value)}</div><div class="market-change ${cls}" role="img" aria-label="${esc(direction)}${abs ? `, ${esc(abs)}` : ''}${ptxt ? `, ${esc(ptxt)}` : ''}">${change}</div></div></div>`;
+      return `<div class="market-item" data-route="Markets" tabindex="0" role="link" aria-label="${esc(x.label || x.symbol || 'Market')}: ${esc(value)} ${esc(direction)}"><div class="market-name">${esc(x.label || x.symbol || x.group || 'MARKET')}</div><div class="market-data"><div class="market-value">${esc(value)}</div><div class="market-change ${cls}" role="img" aria-label="${esc(direction)}${abs ? `, ${esc(abs)}` : ''}${ptxt ? `, ${esc(ptxt)}` : ''}">${change}</div></div></div>`;
     }).join('');
   }
 
   function renderBanner() {
+    const banner = $('relatedBanner');
+    if (!banner) return;
     const b = state.bootstrap?.home || {};
     const lead = b.lead || (b.stack || [])[0] || (state.bootstrap?.latest || [])[0];
-    $('relatedBannerTitle').textContent = lead?.title || 'Waiting for active reporting…';
-    $('relatedBannerDesc').textContent = lead?.description || lead?.reason || (lead ? `${articleSource(lead)} · ${eventTime(lead)}` : 'Aetheria is waiting for the live news engine.');
-    const banner=$('relatedBanner');
-    const img=$('relatedBannerImage');
-    const url=sourceUrl(lead);
-    const arrow=$('relatedBannerArrow');
-    if(banner){
-      if(url) banner.dataset.sourceUrl=url; else delete banner.dataset.sourceUrl;
+    if (!lead || !lead.title) {
+      banner.style.display = 'none';
+      return;
     }
-    if(arrow){
-      if(url) arrow.dataset.sourceUrl=url; else delete arrow.dataset.sourceUrl;
-    }
-    if(img){
-      if(lead?.image_url){
-        img.style.backgroundImage=`url("${String(lead.image_url).replace(/"/g,'&quot;')}")`;
+    banner.style.display = 'grid';
+    $('relatedBannerTitle').textContent = lead.title || '';
+    $('relatedBannerDesc').textContent = lead.description || lead.reason || (lead ? `${articleSource(lead)} · ${eventTime(lead)}` : '');
+    const img = $('relatedBannerImage');
+    const url = sourceUrl(lead);
+    const arrow = $('relatedBannerArrow');
+    if (url) banner.dataset.sourceUrl = url; else delete banner.dataset.sourceUrl;
+    if (arrow) { if (url) arrow.dataset.sourceUrl = url; else delete arrow.dataset.sourceUrl; }
+    if (img) {
+      if (lead.image_url) {
+        img.style.backgroundImage = `url("${String(lead.image_url).replace(/"/g,'&quot;')}")`;
         img.classList.add('has-live-image');
-      }else{
-        img.style.backgroundImage='';
+      } else {
+        img.style.backgroundImage = '';
         img.classList.remove('has-live-image');
       }
     }
@@ -372,7 +380,7 @@
       const stack = state.bootstrap?.home?.stack || [];
       return stack.filter(x => x && x.id).slice(0, Math.max(10, stack.length));
     }
-    return state.articles.slice(0, 5);
+    return state.articles.slice(0, 4);
   }
 
   function renderStack() {
@@ -391,17 +399,38 @@
   }
 
   function developingHTML(items) {
-    const rows = (items || []).slice(0, 5);
+    const rows = (items || []).slice(0, 4);
     if (!rows.length) return '<div class="empty-state">No active developing stories are available.</div>';
     return rows.map(e => {
       const url = sourceUrl(e);
       const action = url ? `data-source-url="${esc(url)}"` : `data-open-event="${esc(e.id || '')}"`;
-      const domain=e.domain || (e.source_domains || [])[0] || '';
-      return `<div class="dev-row" ${action}>${clockMarkup(e.latest_published || e.published,e.last_seen,'dev-time')}<div class="dev-content"><div class="dev-cat ${topicClass(e.topic)}">${esc((e.topic || 'WORLD').toUpperCase())}</div><div class="dev-title" ${langAttr(e,e.title)}>${esc(e.title)}</div><div class="dev-source">${esc([domain,eventTime(e)].filter(Boolean).join(' · '))}</div></div>${actionTools(e)}</div>`;
+      const domain = e.domain || (e.source_domains || [])[0] || '';
+      const publishedTs = Number(e.latest_published || e.published || 0);
+      const timestamp = publishedTs || Number(e.last_seen || 0);
+      let timeMarkup = '<time class="dev-time">—</time>';
+      if (timestamp > 0) {
+        const d = new Date(timestamp * 1000);
+        if (!Number.isNaN(d.getTime())) {
+          const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+          const parts = timeStr.split(' ');
+          timeMarkup = `<time class="dev-time"><span>${esc(parts[0])}</span><small>${esc(parts[1] || '')}</small></time>`;
+        }
+      }
+      return `<div class="dev-row" ${action} tabindex="0" role="group" aria-label="Developing story: ${esc(e.title)}">${timeMarkup}<div class="dev-content"><div class="dev-cat ${topicClass(e.topic)}">${esc((e.topic || 'WORLD').toUpperCase())}</div><div class="dev-title" ${langAttr(e,e.title)}>${esc(e.title)}</div><div class="dev-source">${esc([domain, eventTime(e)].filter(Boolean).join(' · '))}</div></div></div>`;
     }).join('');
   }
   function lowerCard(title, rows, renderer) {
     return `<article class="info-card"><div class="card-head"><b>${esc(title)}</b><a data-route="${esc(title === 'INDIA DESK' ? 'India' : title === 'IMPACT' ? 'Aetheria Read' : title === 'UPCOMING EVENTS' ? 'Upcoming Events' : 'Aetheria Read')}">View all →</a></div>${rows || '<div class="empty-state">No active information available.</div>'}</article>`;
+  }
+
+  function eventDateParts(ts) {
+    const value = Number(ts);
+    if (!Number.isFinite(value) || value <= 0) return { month: 'OCT', day: '—' };
+    const date = new Date(value * 1000);
+    if (Number.isNaN(date.getTime())) return { month: 'OCT', day: '—' };
+    const month = date.toLocaleDateString([], { month: 'short' }).toUpperCase();
+    const day = String(date.getDate()).padStart(2, '0');
+    return { month, day };
   }
 
   function renderHome() {
@@ -433,24 +462,30 @@
       const status=x.status?`<div class="india-live">${esc(x.status.toUpperCase())}</div>`:'';
       const image=safeSourceUrl(x.image_url);
       const imageMarkup=image?`<img class="india-photo" src="${esc(image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('.india-feature')?.classList.add('text-only');this.remove()">`:'';
-      return i===0
-        ? `<div class="india-feature ${image?'has-image':'text-only'}" ${action}>${imageMarkup}<div class="india-feature-content"><small class="india-item-category">${esc((x.topic || 'INDIA').toUpperCase())}</small>${status}<div class="india-title" ${langAttr(x,x.title)}>${esc(x.title)}</div>${footer}</div></div>`
-        : `<div class="list-row india-secondary" ${action}><small class="india-item-category">${esc((x.topic || 'INDIA').toUpperCase())}</small>${status}<span class="india-secondary-title" ${langAttr(x,x.title)}>${esc(x.title)}</span>${footer}</div>`;
+      return `<div class="india-feature ${image?'has-image':'text-only'}" ${action} tabindex="0" role="group" aria-label="Open story: ${esc(x.title)}">${imageMarkup}<div class="india-feature-content"><div class="india-item-top"><small class="india-item-category">${esc((x.topic || 'INDIA').toUpperCase())}</small>${status}</div><div class="india-title" ${langAttr(x,x.title)}>${esc(x.title)}</div>${footer}</div></div>`;
     }).join('');
 
-    const impactRows = impact.slice(0,3).map(x => {
+    const sortedImpact = (impact || []).slice().sort((a,b) => {
+      const sa = storyImpactScore(a);
+      const sb = storyImpactScore(b);
+      return sb - sa;
+    });
+    const impactRows = sortedImpact.slice(0,3).map(x => {
       const url=sourceUrl(x), action=url ? `data-source-url="${esc(url)}"` : `data-open-event="${esc(x.id || '')}"`;
-      const score=Number(x?.intelligence?.impact);
-      const scoreText=Number.isFinite(score) ? String(Math.round(score*100)) : '';
-      const scoreClass = Number.isFinite(score) ? (score >= 0.70 ? 'impact-high' : score >= 0.40 ? 'impact-medium' : 'impact-low') : 'impact-none';
+      const impactScore = storyImpactScore(x);
+      const scoreText = impactScore > 0 ? String(impactScore) : '';
+      const scoreClass = impactScore >= 70 ? 'impact-high' : impactScore >= 40 ? 'impact-medium' : impactScore > 0 ? 'impact-low' : 'impact-none';
       const indicator = scoreText ? `<div class="impact-icon ${scoreClass}" aria-label="Impact ${esc(scoreText)} out of 100"><span class="impact-inline-score">${esc(scoreText)}</span></div>` : `<div class="impact-icon impact-none" aria-label="Impact score unavailable"><span class="impact-inline-score">—</span></div>`;
       return `<div class="impact-row" ${action}>${indicator}<div class="impact-text"><small>${esc((x.topic || 'IMPACT').toUpperCase())}</small><h3 ${langAttr(x,x.title)}>${esc(x.title)}</h3>${publicationMarkup(x.latest_published || x.published,x.last_seen)}</div>${actionTools(x)}</div>`;
     }).join('');
 
-    const futureRows = future.length ? `<div class="future-wrap">${future.slice(0,2).map(x => {
+    const futureCandidate = (Array.isArray(h.upcoming_events) && h.upcoming_events.length >= 3) ? h.upcoming_events : (state.bootstrap?.future || h.upcoming_events || []);
+    const futureList = futureCandidate.slice().sort((a,b) => (Number(a.start_ts)||Infinity) - (Number(b.start_ts)||Infinity));
+    const futureRows = futureList.length ? `<div class="future-wrap">${futureList.slice(0,3).map(x => {
       const url=safeSourceUrl(x.url), action=url?`data-source-url="${esc(url)}"`:'';
-      const date=x.time_known?formatPublished(x.start_ts):formatScheduleDate(x.start_ts);
-      return `<div class="future-row" ${action}><div class="future-text"><small>${esc(x.horizon || '')}</small><h3 ${langAttr(x,x.title)}>${esc(x.title)}</h3><time datetime="${esc(x.start_ts?new Date(x.start_ts*1000).toISOString():'')}">${esc(date)}</time></div>${actionTools(x)}</div>`;
+      const dateObj = eventDateParts(x.start_ts);
+      const timeStr = x.time_known ? formatTime(x.start_ts) : 'All day';
+      return `<div class="future-row" ${action} tabindex="0" role="group" aria-label="Scheduled event: ${esc(x.title)}"><div class="future-date-badge"><span class="future-date-month">${esc(dateObj.month)}</span><span class="future-date-day">${esc(dateObj.day)}</span></div><div class="future-text"><h3 ${langAttr(x,x.title)}>${esc(x.title)}</h3><span class="future-time-label">${esc(timeStr)}</span></div>${actionTools(x)}</div>`;
     }).join('')}</div>` : '<div class="empty-state">No active upcoming events are available.</div>';
     const readRows = read.slice(0,1).map(x => {
       const url=sourceUrl(x), action=url ? `data-source-url="${esc(url)}"` : `data-open-event="${esc(x.event_id || x.id || '')}"`;
@@ -458,14 +493,12 @@
       const source=String(x.domain || x.latest_domain || x.source_domains?.[0] || '').trim();
       const published=x.latest_published || x.published || x.last_seen;
       const timeLabel=published?`${Number(x.latest_published || x.published)>0?'Published':'Observed'} ${formatPublished(published)}`:'';
-      const reportCount=Number(x.sources ?? x.source_count);
-      const impact=Number(x?.event?.significance || x?.intelligence?.impact);
-      const scoreClass = impact >= 0.70 ? 'impact-high' : impact >= 0.40 ? 'impact-medium' : 'impact-low';
-      const impactBadge = Number.isFinite(impact) && impact>0 ? `<span class="impact-icon ${scoreClass}" style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; margin-left:8px; border:1px solid var(--line-2); background:var(--surface); vertical-align:middle;" title="Impact ${Math.round(impact*100)}/100"><span class="impact-inline-score" style="font-size:10px;line-height:1;position:static;">${Math.round(impact*100)}</span></span>` : '';
-      const readMeta=[source,timeLabel,x.status,Number.isFinite(reportCount)&&reportCount>0?`${reportCount} reports`: ''].filter(Boolean);
-      const context=String(x.description || '').trim();
+      const impactScore = storyImpactScore(x);
+      const scoreClass = impactScore >= 70 ? 'impact-high' : impactScore >= 40 ? 'impact-medium' : 'impact-low';
+      const impactBadge = impactScore > 0 ? `<span class="impact-icon ${scoreClass}" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; margin-left:6px; border:1px solid var(--line-2); background:var(--surface); vertical-align:middle;" title="Impact ${impactScore}/100"><span class="impact-inline-score" style="font-size:9px;line-height:1;position:static;">${impactScore}</span></span>` : '';
+      const context=String(x.description || x.reason || '').trim();
       const imageMarkup=image?`<div class="read-card-image banner-img" role="img" aria-label="Article image" style="background-image:url('${esc(image)}')"></div>`:'';
-      return `<div class="read-card-content ${image?'has-image':'no-image'}" ${action} style="cursor:pointer" tabindex="0">${imageMarkup}<small class="read-card-category">${esc((x.topic || 'AETHERIA READ').toUpperCase())}</small><h3 ${langAttr(x,x.title)}>${esc(x.title)}${impactBadge}</h3>${!image&&readMeta.length?`<div class="read-card-meta">${readMeta.map(v=>`<span>${esc(v)}</span>`).join('')}</div>`:''}${!image&&context?`<p class="read-card-excerpt" ${langAttr(x,context)}>${esc(context)}</p>`:''}<div class="read-card-actions">${actionTools(x)}</div></div>`;
+      return `<div class="read-card-content ${image?'has-image':'no-image'}" ${action} style="cursor:pointer" tabindex="0">${imageMarkup}<div class="read-card-body"><div class="read-card-top"><small class="read-card-category">${esc((x.topic || 'AETHERIA READ').toUpperCase())}</small>${impactBadge}</div><h3 ${langAttr(x,x.title)}>${esc(x.title)}</h3>${context?`<p class="read-card-excerpt" ${langAttr(x,context)}>${esc(context)}</p>`:''}<div class="read-card-footer"><span class="read-card-time">${esc(timeLabel || source)}</span><div class="read-card-actions">${actionTools(x)}</div></div></div></div>`;
     }).join('');
 
     const latestRows = latest.length ? latest.map((x,i) => {
@@ -552,16 +585,16 @@
       let stackHtml = '';
       let listItems = state.articles;
       
-      if (state.articles.length >= 10) {
-        const stackItems = state.articles.slice(0, 5);
-        const developingItems = state.articles.slice(5, 10);
-        listItems = state.articles.slice(10);
+      if (state.articles.length >= 8) {
+        const stackItems = state.articles.slice(0, 4);
+        const developingItems = state.articles.slice(4, 8);
+        listItems = state.articles.slice(8);
         const devHeadStr = isCategory ? `LATEST IN ${esc(route.toUpperCase())}` : 'DEVELOPING IN LATEST';
         stackHtml = `<section class="hero">${renderStack()}<aside class="hero-card developing"><div class="dev-head"><b>${devHeadStr}</b><a data-route="Latest">View all →</a></div>${developingHTML(developingItems)}</aside></section>`;
         if (stackItems.length) startStackTimer();
-      } else if (state.articles.length > 5) {
-        const stackItems = state.articles.slice(0, 5);
-        listItems = state.articles.slice(5);
+      } else if (state.articles.length > 4) {
+        const stackItems = state.articles.slice(0, 4);
+        listItems = state.articles.slice(4);
         stackHtml = `<section class="hero">${renderStack()}</section>`;
         if (stackItems.length) startStackTimer();
       }
@@ -569,6 +602,7 @@
       host.querySelector('.route-stack-container').innerHTML = stackHtml;
       host.querySelector('.latest-card').innerHTML = articleRows(listItems);
       
+      bindStackControls();
       wireDynamicInteractions();
     } catch (err) {
       host.querySelector('.latest-card').innerHTML = '<div class="empty-state">Live article data is temporarily unavailable. No substitute content has been generated.</div>';
@@ -678,7 +712,10 @@
     const input=$('searchDockInput'); 
     if(input){ 
       input.value=''; 
-      input.focus(); 
+      setTimeout(() => {
+        input.focus({preventScroll:true});
+        input.select();
+      }, 40);
       updateSearchSuggestions(); 
     }
   }
@@ -738,7 +775,7 @@
     const hash = route === 'Home' ? 'Home' : route;
     if (options.history===false) history.replaceState({route}, '', `#${encodeURIComponent(hash)}`);
     else if (changedView) history.pushState({route}, '', `#${encodeURIComponent(hash)}`);
-    if (!options.noScroll) resetRouteScroll();
+    if (changedView) resetRouteScroll();
     if (changedView || route === 'Search') await renderRoute();
   }
 
@@ -749,10 +786,67 @@
       if(url && openSource(url)) return;
       openStory(el.dataset.openStory || el.dataset.openEvent);
     }));
-    document.querySelectorAll('[data-home-prev]').forEach(b => b.onclick = () => moveStack(-1));
-    document.querySelectorAll('[data-home-next]').forEach(b => b.onclick = () => moveStack(1));
-    document.querySelectorAll('[data-home-pause]').forEach(b => b.onclick = e => { e.preventDefault(); e.stopPropagation(); state.stackPaused = !state.stackPaused; if (state.stackPaused) clearStackTimer(); else startStackTimer(); renderRoute(); });
+    bindStackControls();
     wireDynamicInteractions();
+  }
+  function bindStackControls() {
+    document.querySelectorAll('[data-home-prev]').forEach(b => {
+      b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); moveStack(-1); };
+    });
+    document.querySelectorAll('[data-home-next]').forEach(b => {
+      b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); moveStack(1); };
+    });
+    document.querySelectorAll('[data-home-pause]').forEach(b => {
+      b.onclick = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        state.stackPaused = !state.stackPaused;
+        if (state.stackPaused) clearStackTimer();
+        else startStackTimer();
+        updateStackDisplay();
+      };
+    });
+  }
+  function updateStackDisplay() {
+    const items = storyStackItems();
+    if (!items.length) return;
+    if (state.route === 'Home') {
+      const heroHost = document.querySelector('.home .hero');
+      if (heroHost) {
+        const developing = Array.isArray(state.bootstrap?.home?.happening) ? state.bootstrap.home.happening : [];
+        heroHost.innerHTML = `${renderStack()}<aside class="hero-card developing"><div class="dev-head"><b>DEVELOPING</b><a data-route="Latest">View all →</a></div>${developingHTML(developing)}</aside>`;
+        bindHome();
+        return;
+      }
+    }
+    const routeContainer = document.querySelector('.route-stack-container');
+    if (routeContainer) {
+      const isCategory = !['Latest'].includes(state.route);
+      let stackHtml = '';
+      if (state.articles.length >= 8) {
+        const developingItems = state.articles.slice(4, 8);
+        const devHeadStr = isCategory ? `LATEST IN ${esc(state.route.toUpperCase())}` : 'DEVELOPING IN LATEST';
+        stackHtml = `<section class="hero">${renderStack()}<aside class="hero-card developing"><div class="dev-head"><b>${devHeadStr}</b><a data-route="Latest">View all →</a></div>${developingHTML(developingItems)}</aside></section>`;
+      } else if (state.articles.length > 4) {
+        stackHtml = `<section class="hero">${renderStack()}</section>`;
+      }
+      routeContainer.innerHTML = stackHtml;
+      bindStackControls();
+      wireDynamicInteractions();
+      return;
+    }
+  }
+
+  function moveStack(delta) {
+    const items = storyStackItems(); if (!items.length) return;
+    state.stackIndex = (state.stackIndex + delta + items.length) % items.length;
+    updateStackDisplay();
+  }
+  function clearStackTimer() { if (state.stackTimer) clearInterval(state.stackTimer); state.stackTimer = null; }
+  function startStackTimer() {
+    clearStackTimer();
+    if (state.stackPaused) return;
+    const items = storyStackItems(); if (items.length < 2) return;
+    state.stackTimer = setInterval(() => moveStack(1), 9000);
   }
   function wireDynamicInteractions() {
     document.querySelectorAll('[data-source-url]').forEach(el => {
@@ -808,17 +902,28 @@
       btn.addEventListener('click', async e => {
         e.preventDefault(); e.stopPropagation();
         const eid=btn.dataset.followEvent; if(!eid) return;
-        const following=followedIds().has(eid); btn.disabled=true;
+        const following=followedIds().has(eid);
+        const newFollowing=!following;
+        const ids=followedIds();
+        if(newFollowing) ids.add(eid); else ids.delete(eid);
+        state.followUp={...(state.followUp || {}),followed_ids:[...ids]};
+        btn.classList.toggle('following', newFollowing);
+        const icon = btn.querySelector('.news-card-action-icon');
+        if (icon) icon.textContent = newFollowing ? '✓' : '+';
+        btn.setAttribute('aria-label', newFollowing ? 'Following this story' : 'Follow this story');
+        btn.setAttribute('title', newFollowing ? 'Following this story' : 'Follow this story');
+        announceAction(newFollowing ? 'Article successfully added to Follow-Up.' : 'Article removed from Follow-Up.');
         try {
-          const d=await fetch('/api/follow',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session:followSession(),event_id:eid,action:following?'unfollow':'follow'})}).then(r=>r.json());
+          const d=await fetch('/api/follow',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session:followSession(),event_id:eid,action:newFollowing?'follow':'unfollow'})}).then(r=>r.json());
           if(!d.ok || d.error) throw new Error(d.error || 'Follow action failed');
-          const ids=followedIds();
-          if(d.following) ids.add(eid); else ids.delete(eid);
+          getJSON(`/api/follow-up?session=${encodeURIComponent(followSession())}`).then(f => { if(f) state.followUp=f; }).catch(()=>{});
+        } catch {
+          if(following) ids.add(eid); else ids.delete(eid);
           state.followUp={...(state.followUp || {}),followed_ids:[...ids]};
-          try { state.followUp=await getJSON(`/api/follow-up?session=${encodeURIComponent(followSession())}`); } catch {}
-          await renderRoute();
-          announceAction(d.following?'Article successfully added to Follow-Up.':'Article removed from Follow-Up.');
-        } catch { btn.disabled=false; announceAction('Follow-Up could not be updated.'); }
+          btn.classList.toggle('following', following);
+          if (icon) icon.textContent = following ? '✓' : '+';
+          announceAction('Follow-Up could not be updated.');
+        }
       });
     });
     document.querySelectorAll('[data-unfollow-event]').forEach(btn => {
@@ -857,19 +962,6 @@
       });
     });
     observeStoryExposure();
-  }
-
-  function moveStack(delta) {
-    const items = storyStackItems(); if (!items.length) return;
-    state.stackIndex = (state.stackIndex + delta + items.length) % items.length;
-    renderRoute();
-  }
-  function clearStackTimer() { if (state.stackTimer) clearInterval(state.stackTimer); state.stackTimer = null; }
-  function startStackTimer() {
-    clearStackTimer();
-    if (state.stackPaused) return;
-    const items = storyStackItems(); if (items.length < 2) return;
-    state.stackTimer = setInterval(() => moveStack(1), 9000);
   }
 
   async function refreshBootstrap(forceRender = false) {

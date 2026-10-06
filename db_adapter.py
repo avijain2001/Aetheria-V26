@@ -268,7 +268,7 @@ class PostgresCursorWrapper:
         return self._cur.rowcount
 
 
-def get_db(db_file: Optional[Path] = None, timeout: float = 3.0, query_only: bool = False) -> DatabaseConnection:
+def get_db(db_file: Optional[Path] = None, timeout: float = 60.0, query_only: bool = False) -> DatabaseConnection:
     """
     Factory function to obtain a database connection:
     - If DATABASE_URL is set -> connects to PostgreSQL
@@ -283,7 +283,7 @@ def get_db(db_file: Optional[Path] = None, timeout: float = 3.0, query_only: boo
                 "PostgreSQL connection requested via DATABASE_URL, but 'psycopg2' is not installed. "
                 "Please run: pip install psycopg2-binary"
             )
-        raw_conn = psycopg2.connect(DATABASE_URL, connect_timeout=int(timeout) or 5)
+        raw_conn = psycopg2.connect(DATABASE_URL, connect_timeout=int(timeout) or 10)
         raw_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED)
         return DatabaseConnection(raw_conn, is_postgres=True)
     else:
@@ -291,6 +291,10 @@ def get_db(db_file: Optional[Path] = None, timeout: float = 3.0, query_only: boo
         target.parent.mkdir(parents=True, exist_ok=True)
         raw_conn = sqlite3.connect(str(target), timeout=timeout, check_same_thread=False)
         raw_conn.row_factory = sqlite3.Row
+        try:
+            raw_conn.execute("PRAGMA busy_timeout=60000")
+        except Exception:
+            pass
         if query_only:
             try:
                 raw_conn.execute("PRAGMA query_only=1")

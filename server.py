@@ -60,8 +60,8 @@ CONNECT_TIMEOUT = float(os.environ.get("AETHERIA_CONNECT_TIMEOUT", "6.0"))
 RETENTION_DAYS = int(os.environ.get("AETHERIA_RETENTION_DAYS", "30"))
 EVENT_ACTIVE_HOURS = float(os.environ.get("AETHERIA_EVENT_ACTIVE_HOURS", "72"))
 EDITORIAL_DEVELOPMENT_GAP_SECONDS = max(60.0,float(os.environ.get("AETHERIA_EDITORIAL_DEVELOPMENT_GAP_SECONDS", "900")))
-EVENT_POOL_LIMIT = max(1,int(os.environ.get("AETHERIA_EVENT_POOL_LIMIT", "12000")))
-EVENT_CANDIDATE_PATH_LIMIT = max(1,int(os.environ.get("AETHERIA_EVENT_CANDIDATE_PATH_LIMIT", str(min(8000,EVENT_POOL_LIMIT)))))
+EVENT_POOL_LIMIT = max(1,int(os.environ.get("AETHERIA_EVENT_POOL_LIMIT", "1500")))
+EVENT_CANDIDATE_PATH_LIMIT = max(1,int(os.environ.get("AETHERIA_EVENT_CANDIDATE_PATH_LIMIT", str(min(800,EVENT_POOL_LIMIT)))))
 SNAPSHOT_EVENT_LIMIT = int(os.environ.get("AETHERIA_SNAPSHOT_EVENT_LIMIT", "180"))
 LOCAL_ANALYSIS_SNIPPETS = int(os.environ.get("AETHERIA_LOCAL_ANALYSIS_SNIPPETS", "8"))
 LATEST_LANE_LIMIT = int(os.environ.get("AETHERIA_LATEST_LANE_LIMIT", "400"))
@@ -252,8 +252,12 @@ def init_db():
           FOREIGN KEY(source_id) REFERENCES sources(id)
         );
         CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published);
+        CREATE INDEX IF NOT EXISTS idx_articles_topic_pub ON articles(topic, published);
+        CREATE INDEX IF NOT EXISTS idx_articles_country_pub ON articles(country, published);
+        CREATE INDEX IF NOT EXISTS idx_articles_pub_topic_ctry ON articles(published DESC, topic, country);
         CREATE INDEX IF NOT EXISTS idx_articles_fingerprint ON articles(fingerprint);
         CREATE INDEX IF NOT EXISTS idx_articles_source ON articles(source_id);
+        CREATE INDEX IF NOT EXISTS idx_event_articles_art ON event_articles(article_id);
         CREATE TABLE IF NOT EXISTS events(
           id TEXT PRIMARY KEY,title TEXT NOT NULL,topic TEXT,status TEXT NOT NULL,first_seen REAL,last_seen REAL,last_change REAL,
           velocity REAL DEFAULT 0,novelty REAL DEFAULT 0,corroboration REAL DEFAULT 0,authority REAL DEFAULT 0,urgency REAL DEFAULT 0,
@@ -1715,14 +1719,15 @@ def build_local_relevance(title, topic=None, city="", state_name=""):
 
 
 def _serialize_event(e,meta_map,score_override=None):
-    m=meta_map.get(e["id"]); domains=[d for d in (m["domains"].split(",") if m and m["domains"] else []) if d]
-    mlanguages = (m["languages"] if m is not None and "languages" in m.keys() else "") if hasattr(m, "keys") else (m.get("languages") if m else "")
+    m=meta_map.get(e["id"]) if isinstance(meta_map, dict) else None
+    domains=[d for d in ((m.get("domains") if m else "").split(",") if m and m.get("domains") else []) if d]
+    mlanguages = m.get("languages") if m else ""
     languages=[d for d in str(mlanguages or "").split(",") if d]
-    mcountries = m["countries"] if m is not None and "countries" in m.keys() else ""
+    mcountries = m.get("countries") if m else ""
     countries=[d for d in str(mcountries or "").split(",") if d]
     # published: use the most recently published article's timestamp
     # (MAX published across all linked articles, already computed in meta_map)
-    pub=float(m["published"]) if m and m["published"] else None
+    pub=float(m["published"]) if m and m.get("published") else None
     # latest_published: the timestamp of the latest_article_id specifically
     latest_pub=float(m["latest_published"]) if m and m.get("latest_published") else pub
     evidence_text=" || ".join(str(m.get(k) or "") for k in ("article_titles","primary_description","latest_description")) if m else ""
@@ -1752,8 +1757,8 @@ def _serialize_event(e,meta_map,score_override=None):
     if local_rel>0 and "Local" not in life_path: life_path=["Local / city impact"]+life_path
     # URL: use the latest article's URL as the primary click-through for recency.
     # Falls back to primary_article (founding article) if latest is not available.
-    display_url = safe_url(m["latest_url"] if m else "") or safe_url(m["primary_url"] if m else "")
-    display_domain = (m["latest_domain"] if m else "") or (m["primary_domain"] if m else "")
+    display_url = safe_url(m.get("latest_url") if m else "") or safe_url(m.get("primary_url") if m else "")
+    display_domain = (m.get("latest_domain") if m else "") or (m.get("primary_domain") if m else "")
     display_image = safe_url(m.get("latest_image_url") if m else "") or safe_url(m.get("image_url") if m else "")
     obj={"id":e["id"],"title":e["title"],"topic":e["topic"],"status":e["status"],"last_seen":e["last_seen"],
          "published":pub,"published_utc":datetime.fromtimestamp(pub,timezone.utc).isoformat() if pub else None,
@@ -1763,8 +1768,8 @@ def _serialize_event(e,meta_map,score_override=None):
          "source_domains":domains[:6],"languages":languages[:8],"source_countries":countries[:8],
          "article_count":int(e["article_count"] or 0),
          "url":display_url,"domain":display_domain,"image_url":display_image,
-         "latest_url":safe_url(m["latest_url"] if m else ""),"latest_domain":(m["latest_domain"] if m else ""),
-         "description":(e["summary"] or (m["description"] if m and m["description"] else ""))[:PRIMARY_DESCRIPTION_LIMIT],
+         "latest_url":safe_url(m.get("latest_url") if m else ""),"latest_domain":(m.get("latest_domain") if m else ""),
+         "description":(e.get("summary") or (m.get("description") if m and m.get("description") else ""))[:PRIMARY_DESCRIPTION_LIMIT],
          "velocity":round(float(e["velocity"] or 0),2),"signals":signals,
          "india_lens_score":round(float(india_detail["score"]),3),
          "india_lens_reasons":india_detail["reasons"][:3],
@@ -2588,11 +2593,19 @@ def rebuild_snapshot():
     cats=category_payload_fast([x["obj"] for x in enriched])
     home=build_home_payload(enriched,ranked_latest,important_objs,impact_objs,future,moving_objs,flash_objs)
 
-    # Maintain the existing bounded latest index, but order it solely by publication recency.
+    # Maintain the existing bounded latest index, ordered by freshest publication time from articles table
     latest_lane_objs=[]
-    for x in ranked_latest[:800]:
-        item=dict(x["obj"]); item["_editorial_selection"]={"lane":"latest","reasons":["chronological publication order"]}
-        latest_lane_objs.append(item)
+    try:
+        con = db_read()
+        art_rows = con.execute("SELECT * FROM articles WHERE length(trim(title))>=8 ORDER BY published DESC LIMIT 50").fetchall()
+        latest_lane_objs = [dict(r) for r in art_rows]
+        con.close()
+    except Exception:
+        pass
+    if not latest_lane_objs:
+        for x in ranked_latest[:50]:
+            item=dict(x["obj"]); item["_editorial_selection"]={"lane":"latest","reasons":["chronological publication order"]}
+            latest_lane_objs.append(item)
 
     t_now = now()
     latest_article_pub = max((float(o.get("published") or 0) for o in all_objs if o.get("published")), default=0.0)
@@ -2629,7 +2642,7 @@ def build_home_payload(enriched, ranked_latest, important_objs, impact_objs, fut
     latest=[x["obj"] for x in ranked_latest]
     flash_objs=list(flash_objs or [])
     now_ts=now()
-    upcoming_events=select_home_future(future,2,now_ts,enriched)
+    upcoming_events=select_home_future(future,6,now_ts,enriched)
     if not latest and not flash_objs:
         return {"lead":None,"stack":[],"flash":[],"happening":[],"india_lens":[],"impact":[],"emerging":[],"read_next":[],"important":[],"world":[],"latest":[],"upcoming_events":upcoming_events,"now":None,"next":(upcoming_events or [None])[0],"pressure":[],"metrics":{"reports_24h":0,"events_24h":0,"confirmed":0,"developing":0,"disputed":0,"unverified":0,"flash":0},"ai":intelligence_status()}
     # Lanes select independently: reuse is valid when a story earns a distinct lens.
@@ -3099,74 +3112,76 @@ def article_stream(limit=60, offset=0, topic="", india=False, world=False):
     con=None
     try:
         con=db_read()
-        params=[]
-        where=["(a.published IS NOT NULL OR a.fetched IS NOT NULL)", "length(trim(a.title))>=8"]
-        if topic:
+        if india:
+            target_sql = """
+                SELECT id, published FROM articles WHERE topic IN ('India','Local') AND published IS NOT NULL AND length(trim(title))>=8
+                ORDER BY published DESC LIMIT ? OFFSET ?
+            """
+            target_params = [limit, offset]
+        elif world:
+            target_sql = """
+                SELECT id, published FROM articles WHERE topic IN ('World','Geopolitics','Economy','Energy','Commodities','Science','Space','Technology','AI','Climate','Weather','Health','Markets','Business','Finance','Travel','Autos','Culture') AND published IS NOT NULL AND length(trim(title))>=8
+                ORDER BY published DESC LIMIT ? OFFSET ?
+            """
+            target_params = [limit, offset]
+        elif topic:
             topic_map={"Market":"Markets","Geopolitical":"Geopolitics"}
             topic=topic_map.get(topic,topic)
-            where.append("a.topic=?")
-            params.append(topic)
-        if india:
-            india_conditions=["COALESCE(e.india_relevance,0)>=0.25","e.topic IN ('India','Local')","a.topic IN ('India','Local')"]
-            india_terms=sorted(term for term in INDIA_DIRECT_TERMS if len(term)>=3)
-            for column in ("e.title","e.summary","a.title","a.description"):
-                india_conditions.extend(f"lower(COALESCE({column},'')) LIKE ?" for _ in india_terms)
-                params.extend(f"%{term}%" for term in india_terms)
-            where.append("("+" OR ".join(india_conditions)+")")
-        if world:
-            world_conditions=["COALESCE(e.geopolitical_relevance,0)>=0.15","COALESCE(e.financial_relevance,0)>=0.15","COALESCE(e.supply_chain_relevance,0)>=0.15","COALESCE(e.social_relevance,0)>=0.15","e.topic IN ('Geopolitics','Energy','Commodities','Economy','Science','Space','Technology','AI','Climate','Weather','Health')"]
-            for column in ("e.title","e.summary","a.title","a.description"):
-                world_conditions.extend(f"lower(COALESCE({column},'')) LIKE ?" for _ in WORLD_SCALE_CUES)
-                params.extend(f"%{cue}%" for cue in WORLD_SCALE_CUES)
-            where.append("(e.id IS NOT NULL AND ("+" OR ".join(world_conditions)+"))")
-        sql=f"""SELECT a.id article_id,a.title,a.description,a.canonical_url,a.domain,a.image_url,
-                       a.published,a.fetched,a.language,a.country,a.topic,a.tier,
-                       s.id source_id,s.name source_name,s.country source_country,s.region source_region,s.tier source_tier,
-                       ea.event_id,
-                       e.title event_title,e.summary event_summary,e.entities event_entities,e.locations event_locations,e.topic event_topic,
-                       e.status event_status,e.last_seen event_last_seen,e.significance,e.india_relevance,
-                       e.financial_relevance,e.supply_chain_relevance,e.geopolitical_relevance,e.social_relevance,
-                       e.urgency,e.authority,e.velocity,e.corroboration,e.novelty,e.source_count,e.article_count,e.latest_article_id
-                FROM articles a
-                LEFT JOIN sources s ON s.id=a.source_id
-                LEFT JOIN event_articles ea ON ea.article_id=a.id
-                LEFT JOIN events e ON e.id=ea.event_id
-                WHERE {' AND '.join(where)}
-                ORDER BY CASE WHEN COALESCE(a.fetched,0)>COALESCE(a.published,0) THEN a.fetched ELSE COALESCE(a.published,0) END DESC
-                LIMIT ? OFFSET ?"""
-        if india or world:
-            target=limit+offset; accepted=[]; seen_articles=set(); scan_offset=0
-            while len(accepted)<target:
-                batch=con.execute(sql,params+[max(300,limit*3),scan_offset]).fetchall()
-                if not batch: break
-                scan_offset+=len(batch)
-                for row in batch:
-                    d=dict(row); aid=d.get("article_id")
-                    if aid in seen_articles: continue
-                    event={"title":d.get("event_title") or "","summary":d.get("event_summary") or "","entities":d.get("event_entities") or "[]","locations":d.get("event_locations") or "[]","topic":d.get("event_topic") or d.get("topic"),"significance":d.get("significance"),"india_relevance":d.get("india_relevance"),"financial_relevance":d.get("financial_relevance"),"supply_chain_relevance":d.get("supply_chain_relevance"),"geopolitical_relevance":d.get("geopolitical_relevance"),"social_relevance":d.get("social_relevance"),"urgency":d.get("urgency"),"authority":d.get("authority"),"velocity":d.get("velocity"),"corroboration":d.get("corroboration"),"novelty":d.get("novelty"),"source_count":d.get("source_count")}
-                    article_evidence={"title":d.get("title"),"description":d.get("description"),"source_name":d.get("source_name"),"country":d.get("country"),"source_country":d.get("source_country"),"source_region":d.get("source_region"),"language":d.get("language")}
-                    india_detail=_india_relevance_assessment(event,articles=[article_evidence])
-                    event["significance"]=_adjust_india_significance(event,india_detail["score"])
-                    event["india_relevance"]=india_detail["score"]
-                    if india:
-                        if india_detail["score"]<INDIA_RELEVANCE_THRESHOLD: continue
-                    if world and not _world_consequence_assessment(event," ".join((d.get("title") or "",d.get("description") or "")))["significant"]: continue
-                    seen_articles.add(aid)
-                    accepted.append(row)
-                    if len(accepted)>=target: break
-            rows=accepted[offset:target]
+            target_sql = """
+                SELECT id, published FROM articles WHERE topic=? AND published IS NOT NULL AND length(trim(title))>=8
+                ORDER BY published DESC LIMIT ? OFFSET ?
+            """
+            target_params = [topic, limit, offset]
         else:
-            rows=con.execute(sql,params+[limit,offset]).fetchall()
+            target_sql = """
+                SELECT id, published FROM articles WHERE published IS NOT NULL AND length(trim(title))>=8
+                ORDER BY published DESC LIMIT ? OFFSET ?
+            """
+            target_params = [limit, offset]
+
+        sql = f"""
+            WITH target_articles AS ({target_sql})
+            SELECT a.id article_id,a.title,a.description,a.canonical_url,a.domain,a.image_url,
+                   a.published,a.fetched,a.language,a.country,a.topic,a.tier,
+                   s.id source_id,s.name source_name,s.country source_country,s.region source_region,s.tier source_tier,
+                   ea.event_id,
+                   e.title event_title,e.summary event_summary,e.entities event_entities,e.locations event_locations,e.topic event_topic,
+                   e.status event_status,e.last_seen event_last_seen,e.significance,e.india_relevance,
+                   e.financial_relevance,e.supply_chain_relevance,e.geopolitical_relevance,e.social_relevance,
+                   e.urgency,e.authority,e.velocity,e.corroboration,e.novelty,e.source_count,e.article_count,e.latest_article_id
+            FROM target_articles ta
+            JOIN articles a ON a.id = ta.id
+            LEFT JOIN sources s ON s.id=a.source_id
+            LEFT JOIN event_articles ea ON ea.article_id=a.id
+            LEFT JOIN events e ON e.id=ea.event_id
+            ORDER BY a.published DESC
+        """
+        rows=con.execute(sql, target_params).fetchall()
         out=[]
         for r in rows:
             d=dict(r)
             pub=float(d.get("published") or 0)
-            event={"title":d.get("event_title") or "","summary":d.get("event_summary") or "","entities":d.get("event_entities") or "[]","locations":d.get("event_locations") or "[]","topic":d.get("event_topic") or d.get("topic"),"significance":d.get("significance"),"india_relevance":d.get("india_relevance"),"financial_relevance":d.get("financial_relevance"),"supply_chain_relevance":d.get("supply_chain_relevance"),"geopolitical_relevance":d.get("geopolitical_relevance"),"social_relevance":d.get("social_relevance"),"urgency":d.get("urgency"),"authority":d.get("authority"),"velocity":d.get("velocity"),"corroboration":d.get("corroboration"),"novelty":d.get("novelty"),"source_count":d.get("source_count")}
-            article_evidence={"title":d.get("title"),"description":d.get("description"),"source_name":d.get("source_name"),"country":d.get("country"),"source_country":d.get("source_country"),"source_region":d.get("source_region"),"language":d.get("language")}
-            india_detail=_india_relevance_assessment(event,articles=[article_evidence])
-            event["significance"]=_adjust_india_significance(event,india_detail["score"])
-            event["india_relevance"]=india_detail["score"]
-            world_detail=_world_consequence_assessment(event," ".join((d.get("title") or "",d.get("description") or "")))
+            e_sig = d.get("significance")
+            e_ind = d.get("india_relevance")
+            e_geo = d.get("geopolitical_relevance")
+            e_fin = d.get("financial_relevance")
+            e_sup = d.get("supply_chain_relevance")
+            e_soc = d.get("social_relevance")
+            
+            if e_ind is not None:
+                india_score = float(e_ind or 0)
+                sig_score = float(e_sig or 0)
+                world_score = max(float(e_geo or 0), float(e_fin or 0)*0.75, float(e_sup or 0)*0.75, float(e_soc or 0)*0.65)
+                india_detail = {"score": india_score, "direct": india_score if india_score >= 0.7 else 0.0, "material": 0.0, "weak_mention": 0.0, "publisher": 0.0, "reasons": ["clustered event score"]}
+            else:
+                country = (d.get("country") or d.get("source_country") or "").upper()
+                topic_val = d.get("topic") or "World"
+                is_in = country == "IN" or topic_val in ("India", "Local")
+                india_score = 0.92 if is_in else 0.0
+                sig_score = 0.50
+                world_score = 0.70 if topic_val in WORLD_IMPACT_TOPICS else 0.30
+                india_detail = {"score": india_score, "direct": india_score, "material": 0.0, "weak_mention": 0.0, "publisher": 0.0, "reasons": ["country/topic attribute"]}
+
             out.append({
                 "id":d.get("article_id"),
                 "article_id":d.get("article_id"),
@@ -3185,7 +3200,7 @@ def article_stream(limit=60, offset=0, topic="", india=False, world=False):
                 "topic":d.get("topic") or "World",
                 "tier":d.get("tier") or d.get("source_tier") or "",
                 "source":{"id":d.get("source_id"),"name":d.get("source_name") or d.get("domain") or "Unknown","domain":d.get("domain") or "","country":d.get("source_country") or "","tier":d.get("source_tier") or d.get("tier") or ""},
-                "event":{"id":d.get("event_id"),"status":d.get("event_status"),"last_seen":float(d.get("event_last_seen") or 0),"significance":float(event["significance"] or 0),"india_relevance":float(india_detail["score"]),"india_relevance_detail":india_detail,"world_relevance":float(world_detail["score"]),"financial_relevance":float(d.get("financial_relevance") or 0),"supply_chain_relevance":float(d.get("supply_chain_relevance") or 0),"geopolitical_relevance":float(d.get("geopolitical_relevance") or 0),"social_relevance":float(d.get("social_relevance") or 0),"sources":int(d.get("source_count") or 0),"article_count":int(d.get("article_count") or 0),"latest_article_id":d.get("latest_article_id")}
+                "event":{"id":d.get("event_id"),"status":d.get("event_status"),"last_seen":float(d.get("event_last_seen") or 0),"significance":sig_score,"india_relevance":india_score,"india_relevance_detail":india_detail,"world_relevance":world_score,"financial_relevance":float(d.get("financial_relevance") or 0),"supply_chain_relevance":float(d.get("supply_chain_relevance") or 0),"geopolitical_relevance":float(d.get("geopolitical_relevance") or 0),"social_relevance":float(d.get("social_relevance") or 0),"sources":int(d.get("source_count") or 0),"article_count":int(d.get("article_count") or 0),"latest_article_id":d.get("latest_article_id")}
             })
         return out
     except Exception as exc:
@@ -3764,15 +3779,22 @@ def get_follow_up_data(session: str, client_followed_ids: list | None = None) ->
     
     con = None
     try:
-        con = db()
+        con = db_read()
         if session:
             rows = con.execute("SELECT event_id, followed_at, last_checked FROM user_follows WHERE session=?", (session,)).fetchall()
             for r in rows:
                 followed_set.add(str(r["event_id"]))
                 if r["last_checked"]:
                     last_checked = min(last_checked, float(r["last_checked"]))
-            con.execute("UPDATE user_follows SET last_checked=? WHERE session=?", (t, session))
-            con.commit()
+            if rows:
+                def _bg_touch(s=session, cur_t=t):
+                    try:
+                        with DB_LOCK:
+                            wcon = db()
+                            wcon.execute("UPDATE user_follows SET last_checked=? WHERE session=?", (cur_t, s))
+                            wcon.commit(); wcon.close()
+                    except Exception: pass
+                threading.Thread(target=_bg_touch, daemon=True, name="aetheria-follow-touch").start()
     except Exception:
         if con:
             try: con.close()
@@ -3952,19 +3974,16 @@ def toggle_follow(session: str, event_id: str, action: str = "follow") -> dict:
     t = now()
     con=None
     try:
-        con = db()
-        if action == "unfollow":
-            con.execute("DELETE FROM user_follows WHERE session=? AND event_id=?", (session, event_id))
-            con.commit()
-            return {"following": False, "event_id": event_id}
-        else:
-            exists=con.execute("SELECT 1 FROM events WHERE id=? UNION SELECT 1 FROM schedules WHERE id=? LIMIT 1",(event_id,event_id)).fetchone()
-            if not exists: return {"following":False,"event_id":event_id,"error":"Story or scheduled event is unavailable"}
-            con.execute("INSERT OR IGNORE INTO user_follows(session, event_id, followed_at, last_seen_change, last_checked) VALUES(?,?,?,?,?)", (session, event_id, t, t, t))
-            con.commit()
-            saved=con.execute("SELECT 1 FROM user_follows WHERE session=? AND event_id=?",(session,event_id)).fetchone()
-            if not saved: return {"following":False,"event_id":event_id,"error":"Follow-Up state was not persisted for this session"}
-            return {"following": True, "event_id": event_id}
+        with DB_LOCK:
+            con = db()
+            if action == "unfollow":
+                con.execute("DELETE FROM user_follows WHERE session=? AND event_id=?", (session, event_id))
+                con.commit()
+                return {"following": False, "event_id": event_id}
+            else:
+                con.execute("INSERT OR IGNORE INTO user_follows(session, event_id, followed_at, last_seen_change, last_checked) VALUES(?,?,?,?,?)", (session, event_id, t, t, t))
+                con.commit()
+                return {"following": True, "event_id": event_id}
     except Exception as exc:
         return {"following": action != "unfollow", "event_id": event_id, "error": str(exc)}
     finally:
@@ -4004,8 +4023,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not session or not event_id:
                     self.send_json(400,{"ok":False,"error":"session and event_id required"}); return
                 res=toggle_follow(session,event_id,action)
+                if res.get("error"):
+                    print(f" [API FOLLOW ERROR] res error: {res.get('error')}", flush=True)
                 self.send_json(500 if res.get("error") else 200,{"ok":not bool(res.get("error")),**res}); return
             except Exception as exc:
+                import traceback; traceback.print_exc()
                 self.send_json(500,{"ok":False,"error":str(exc)}); return
         if path=="/api/telemetry":
             try:
@@ -4142,25 +4164,25 @@ STARTUP_STATE={"ready":False,"error":None}
 
 
 def _open_local_browser_when_ready(url, expected_version=VERSION, timeout=30.0):
-    """Open the local UI once, after this server answers its version endpoint."""
+    """Open the local UI once, after initial snapshot is ready or reachable."""
     deadline=time.monotonic()+max(1.0,float(timeout))
     probe=url.rstrip("/")+"/api/version"
     while time.monotonic()<deadline and not STOP.is_set():
         try:
             with urllib.request.urlopen(probe,timeout=1.5) as response:
                 payload=json.loads(response.read(4096).decode("utf-8"))
-            if payload.get("ok") and payload.get("version")==expected_version:
+            if payload.get("ok"):
                 return bool(webbrowser.open_new_tab(url))
         except Exception:
             pass
         STOP.wait(0.25)
-    print(" BROWSER OPEN: local server did not become reachable before timeout",flush=True)
     return False
 
 
 def _initialize_runtime():
     """Run migrations and feed preparation after HTTP has started serving."""
     global SOURCE_CONFIG_MTIME
+    t0 = time.monotonic()
     try:
         init_db()
         sync_sources()
@@ -4169,7 +4191,8 @@ def _initialize_runtime():
         FEED_INVALIDATED.set()
         try:
             rebuild_snapshot()
-            print(" INITIAL SNAPSHOT: READY",flush=True)
+            dur = time.monotonic() - t0
+            print(f" INITIAL SNAPSHOT: READY ({dur:.1f}s)",flush=True)
         except Exception as exc:
             print(f" INITIAL SNAPSHOT: deferred ({type(exc).__name__}: {str(exc)[:160]})",flush=True)
         STARTUP_STATE.update({"ready":True,"error":None})
