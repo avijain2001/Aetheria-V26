@@ -2226,28 +2226,50 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 }
 .hero-feature .story-stack-controls {
   position: absolute !important;
-  top: auto !important;
-  bottom: 20px !important;
-  left: 50% !important;
-  right: auto !important;
-  transform: translateX(-50%) !important;
+  inset: auto 20px 18px 20px !important;
   z-index: 10 !important;
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
   pointer-events: auto !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
   width: auto !important;
-  text-align: center !important;
 }
-.hero-feature .stack-controls-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.hero-feature .stack-meta-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+.hero-feature .story-stack-count {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  letter-spacing: 0.08em !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-variant-numeric: tabular-nums !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+.hero-feature .stack-progress-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  width: 100% !important;
+  max-width: 140px !important;
+  height: 4px !important;
+  margin: 0 !important;
+}
+.hero-feature .stack-nav-btns {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
 }
 .hero-feature .story-stack-count {
   font-size: 12px;
@@ -3789,43 +3811,41 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 }
 .hero-feature .story-stack-controls {
   position: absolute !important;
-  top: auto !important;
-  bottom: 20px !important;
-  left: 50% !important;
-  right: auto !important;
-  transform: translateX(-50%) !important;
+  inset: auto 20px 18px 20px !important;
   z-index: 10 !important;
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
   pointer-events: auto !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
   width: auto !important;
-  text-align: center !important;
 }
-.hero-feature .stack-controls-row {
+.hero-feature .stack-meta-left {
   display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  gap: 14px !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
 }
 .hero-feature .story-stack-count {
-  font-size: 12px !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
   color: rgba(255, 255, 255, 0.85) !important;
   letter-spacing: 0.08em !important;
   font-family: var(--font-mono, monospace) !important;
   font-variant-numeric: tabular-nums !important;
   margin: 0 !important;
+  flex-shrink: 0 !important;
 }
 .hero-feature .stack-nav-btns {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
 }
 .hero-feature .stack-nav-btn {
   width: 32px !important;
@@ -3882,11 +3902,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 @media (max-width: 720px) {
   .hero-feature .story-stack-controls {
     position: absolute !important;
-    top: auto !important;
-    bottom: 16px !important;
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) !important;
+    inset: auto 14px 14px 14px !important;
     gap: 8px !important;
     width: auto !important;
   }
@@ -4042,7 +4058,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   text-overflow: ellipsis !important;
 }
 
-/* Subtle Live System Clock in Topbar (Single Non-wrapping Horizontal Pill) */
+/* Subtle Live System Clock in Topbar (Stacked 2-line Time & Date) */
 .topbar {
   height: 64px !important;
   min-height: 64px !important;
@@ -4061,40 +4077,97 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   flex-shrink: 0 !important;
 }
 .topbar-live-clock {
-  display: inline-flex !important;
-  align-items: center !important;
-  font-size: 9.5px !important;
-  font-weight: 500 !important;
-  color: var(--ink-muted, #7c928a) !important;
-  opacity: 0.55 !important;
-  white-space: nowrap !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  line-height: 1.15 !important;
   flex-shrink: 0 !important;
-  line-height: 1 !important;
-  height: 22px !important;
-  padding: 0 8px !important;
-  border-radius: 6px !important;
-  background: transparent !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  font-variant-numeric: tabular-nums !important;
-  letter-spacing: 0.03em !important;
   margin-right: 6px !important;
   user-select: none !important;
   pointer-events: none !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+.live-clock-time {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  color: var(--ink) !important;
+  opacity: 0.6 !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: 0.02em !important;
+  white-space: nowrap !important;
+}
+.live-clock-date {
+  font-size: 8.5px !important;
+  font-weight: 500 !important;
+  color: var(--ink-muted) !important;
+  opacity: 0.45 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
 }
 
 @media (max-width: 900px) {
   .topbar-live-clock {
     display: none !important;
   }
-  .main-nav {
-    display: none !important;
-  }
   .topbar {
-    padding: 0 16px !important;
-    gap: 12px !important;
+    padding: 0 12px !important;
+    gap: 8px !important;
+    height: 64px !important;
+  }
+  .brand {
+    flex-shrink: 0 !important;
+    gap: 8px !important;
+  }
+  .brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    flex: 0 0 32px !important;
+  }
+  .brand-name {
+    font-size: 13.5px !important;
+    letter-spacing: 0.12em !important;
   }
   .brand-sub {
     display: none !important;
+  }
+  .main-nav {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 4px !important;
+    padding: 0 2px !important;
+    justify-content: flex-start !important;
+  }
+  .main-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+  .main-nav button {
+    padding: 6px 10px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+    border-radius: 8px !important;
+  }
+  .main-nav .nav-overflow {
+    width: 26px !important;
+    padding: 0 4px !important;
+    flex: 0 0 auto !important;
+  }
+  .top-actions {
+    flex-shrink: 0 !important;
+    gap: 6px !important;
+  }
+  .action-btn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 14px !important;
   }
   .user-name {
     display: none !important;
@@ -4103,6 +4176,11 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
     padding: 2px !important;
     background: transparent !important;
     border: none !important;
+  }
+  .user-avatar {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 10px !important;
   }
   .page {
     padding-bottom: calc(var(--bottom-nav-height, 56px) + env(safe-area-inset-bottom, 20px) + 80px) !important;
