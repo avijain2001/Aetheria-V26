@@ -3280,19 +3280,16 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 
   /* --- Topbar & Market Header --- */
   .topbar {
-    padding: 8px 12px !important;
+    padding: 8px 0 6px !important;
     height: auto !important;
-    min-height: 52px !important;
+    min-height: auto !important;
   }
   .brand {
     min-width: 0 !important;
-    max-width: 180px !important;
+    max-width: none !important;
   }
   .brand-sub {
-    max-width: 140px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+    display: none !important;
   }
   .market-pulse, .market {
     width: 100% !important;
@@ -4155,33 +4152,38 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 
 @media (max-width: 900px) {
   .topbar {
-    padding: 0 10px !important;
-    gap: 6px !important;
-    height: 64px !important;
-    min-height: 64px !important;
-    max-height: 64px !important;
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-rows: auto auto !important;
+    row-gap: 8px !important;
+    column-gap: 12px !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    padding: 10px 0 6px !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    overflow: hidden !important;
+    border-bottom: 1px solid var(--line) !important;
+    overflow: visible !important;
     box-sizing: border-box !important;
   }
   .brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    flex: 0 0 auto !important;
+    gap: 8px !important;
     min-width: 0 !important;
+    max-width: none !important;
   }
   .brand-mark {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    flex: 0 0 28px !important;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    flex: 0 0 30px !important;
   }
   .brand-mark svg {
-    width: 20px !important;
-    height: 20px !important;
+    width: 22px !important;
+    height: 22px !important;
   }
   .brand-text {
     min-width: 0 !important;
@@ -4189,79 +4191,34 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
     flex-direction: column !important;
   }
   .brand-name {
-    font-size: 13px !important;
-    letter-spacing: 0.08em !important;
+    font-size: 14px !important;
+    letter-spacing: 0.12em !important;
     white-space: nowrap !important;
     line-height: 1.1 !important;
   }
   .brand-sub {
     display: none !important;
   }
-  .main-nav {
-    display: flex !important;
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    gap: 4px !important;
-    padding: 0 2px !important;
-    margin: 0 4px !important;
-    justify-content: flex-start !important;
-    align-items: center !important;
-    white-space: nowrap !important;
-  }
-  .main-nav::-webkit-scrollbar {
-    display: none !important;
-  }
-  .main-nav button {
-    padding: 5px 8px !important;
-    font-size: 10px !important;
-    white-space: nowrap !important;
-    flex: 0 0 auto !important;
-    border-radius: 8px !important;
-    line-height: 1.2 !important;
-  }
-  .main-nav .nav-overflow {
-    width: 24px !important;
-    padding: 0 3px !important;
-    flex: 0 0 auto !important;
-  }
   .top-actions {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-end !important;
-    gap: 4px !important;
-    flex: 0 0 auto !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
   }
   .topbar-live-clock {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-end !important;
-    justify-content: center !important;
-    line-height: 1 !important;
-    gap: 0px !important;
-    flex-shrink: 0 !important;
-    margin-right: 2px !important;
-  }
-  .live-clock-time {
-    font-size: 8.5px !important;
-    line-height: 1 !important;
-  }
-  .live-clock-date {
-    font-size: 7px !important;
-    line-height: 1 !important;
+    display: none !important;
   }
   .action-btn {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    font-size: 13px !important;
-    flex: 0 0 28px !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    font-size: 14px !important;
+    flex: 0 0 32px !important;
   }
   .user-name {
     display: none !important;
@@ -4270,12 +4227,47 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
     padding: 0 !important;
     background: transparent !important;
     border: none !important;
-    flex: 0 0 26px !important;
+    flex: 0 0 30px !important;
   }
   .user-avatar {
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 10px !important;
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 11px !important;
+  }
+  .main-nav {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    padding: 2px 0 4px !important;
+    margin: 0 !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+  }
+  .main-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+  .main-nav button {
+    padding: 6px 13px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+    border-radius: 999px !important;
+    line-height: 1.2 !important;
+  }
+  .main-nav .nav-overflow {
+    width: 30px !important;
+    padding: 0 4px !important;
+    flex: 0 0 auto !important;
   }
   .hero-feature {
     display: flex !important;
@@ -4530,6 +4522,6 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   </div>
 </div>
 
-<script src="/app.js?v=26.7" defer></script>
+<script src="/app.js?v=26.8" defer></script>
 </body>
 </html>

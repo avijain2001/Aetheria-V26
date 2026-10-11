@@ -2846,77 +2846,62 @@ body[data-theme="newspaper"][data-mode="light"] .journey-milestone.latest .journ
 }
 @media (max-width: 900px) {
   .topbar {
-    padding: 0 10px !important;
-    gap: 6px !important;
-    height: 64px !important;
-    min-height: 64px !important;
-    max-height: 64px !important;
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-rows: auto auto !important;
+    row-gap: 8px !important;
+    column-gap: 12px !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    padding: 10px 0 6px !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    overflow: hidden !important;
+    border-bottom: 1px solid var(--line) !important;
+    overflow: visible !important;
     box-sizing: border-box !important;
   }
   .brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    flex: 0 0 auto !important;
-    max-width: 112px !important;
+    gap: 8px !important;
     min-width: 0 !important;
-    overflow: hidden !important;
+    max-width: none !important;
   }
   .brand-mark {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    flex: 0 0 28px !important;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    flex: 0 0 30px !important;
   }
   .brand-name {
-    font-size: 13px !important;
-    letter-spacing: 0.1em !important;
+    font-size: 14px !important;
+    letter-spacing: 0.12em !important;
     white-space: nowrap !important;
     line-height: 1.1 !important;
   }
   .brand-sub {
     display: none !important;
   }
-  .main-nav {
-    display: flex !important;
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    gap: 4px !important;
-    padding: 0 2px !important;
-    justify-content: flex-start !important;
-    align-items: center !important;
-    white-space: nowrap !important;
-  }
-  .main-nav button {
-    padding: 5px 8px !important;
-    font-size: 10px !important;
-    white-space: nowrap !important;
-    flex: 0 0 auto !important;
-    border-radius: 8px !important;
-    line-height: 1.2 !important;
-  }
   .top-actions {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-end !important;
-    gap: 4px !important;
-    flex: 0 0 auto !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+  .topbar-live-clock {
+    display: none !important;
   }
   .action-btn {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    font-size: 13px !important;
-    flex: 0 0 28px !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    font-size: 14px !important;
+    flex: 0 0 32px !important;
   }
   .user-name {
     display: none !important;
@@ -2925,7 +2910,47 @@ body[data-theme="newspaper"][data-mode="light"] .journey-milestone.latest .journ
     padding: 0 !important;
     background: transparent !important;
     border: none !important;
-    flex: 0 0 26px !important;
+    flex: 0 0 30px !important;
+  }
+  .user-avatar {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 11px !important;
+  }
+  .main-nav {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    padding: 2px 0 4px !important;
+    margin: 0 !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+  }
+  .main-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+  .main-nav button {
+    padding: 6px 13px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+    border-radius: 999px !important;
+    line-height: 1.2 !important;
+  }
+  .main-nav .nav-overflow {
+    width: 30px !important;
+    padding: 0 4px !important;
+    flex: 0 0 auto !important;
   }
   .hero-feature {
     display: flex !important;
