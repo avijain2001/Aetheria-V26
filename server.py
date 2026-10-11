@@ -4759,7 +4759,7 @@ class Handler(BaseHTTPRequestHandler):
             target = (WEB_DIR / safe).resolve()
             if not str(target).startswith(str(WEB_DIR.resolve())) or not target.is_file():
                 target = WEB_DIR / "index.html"
-        ct = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "application/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json"}.get(target.suffix, "application/octet-stream")
+        ct = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "application/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml", ".ico": "image/x-icon"}.get(target.suffix, "application/octet-stream")
         data=target.read_bytes(); self.send_response(200); self.send_header("Content-Type",ct); self.send_header("Cache-Control","no-cache, no-store, must-revalidate"); self.send_header("Pragma","no-cache"); self.send_header("Expires","0"); self.send_header("Content-Length",str(len(data))); self.end_headers()
         if send_body:
             self.wfile.write(data)
