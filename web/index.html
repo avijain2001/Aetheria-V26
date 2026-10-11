@@ -57,7 +57,7 @@
   --cyan: #6edee7;
   --market-up: #69d391;
   --market-down: #f17678;
-  --market-neutral: #a5adb8;
+  --market-neutral: #64748b;
   
   --radius-sm: 10px;
   --radius-md: 16px;
@@ -2226,19 +2226,23 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 }
 .hero-feature .story-stack-controls {
   position: absolute !important;
-  top: 50% !important;
-  bottom: auto !important;
-  transform: translateY(-50%) !important;
-  left: 24px !important;
-  right: 24px !important;
+  top: auto !important;
+  bottom: 20px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
   z-index: 10 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 12px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
   pointer-events: auto !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
+  width: auto !important;
+  text-align: center !important;
 }
 .hero-feature .stack-controls-row {
   display: flex;
@@ -3785,23 +3789,28 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 }
 .hero-feature .story-stack-controls {
   position: absolute !important;
-  top: 50% !important;
-  bottom: auto !important;
-  transform: translateY(-50%) !important;
-  left: 24px !important;
-  right: 24px !important;
+  top: auto !important;
+  bottom: 20px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
   z-index: 10 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 12px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
   pointer-events: auto !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
+  width: auto !important;
+  text-align: center !important;
 }
 .hero-feature .stack-controls-row {
   display: flex !important;
   align-items: center !important;
+  justify-content: center !important;
   gap: 14px !important;
 }
 .hero-feature .story-stack-count {
@@ -3872,12 +3881,14 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 }
 @media (max-width: 720px) {
   .hero-feature .story-stack-controls {
-    top: 50% !important;
-    bottom: auto !important;
-    transform: translateY(-50%) !important;
-    left: 16px !important;
-    right: 16px !important;
+    position: absolute !important;
+    top: auto !important;
+    bottom: 16px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
     gap: 8px !important;
+    width: auto !important;
   }
   .hero-feature .visual-tag-top {
     top: 14px !important;
@@ -3925,7 +3936,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   overflow: hidden !important;
 }
 .hero-feature .story-source {
-  margin-top: auto !important;
+  margin-top: 4px !important;
   margin-bottom: 2px !important;
   display: flex !important;
   align-items: center !important;
@@ -3934,13 +3945,13 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   line-height: 1.4 !important;
 }
 .hero-feature .news-published {
-  margin: 0 0 12px 0 !important;
+  margin: 0 0 10px 0 !important;
   line-height: 1.35 !important;
 }
 .hero-feature .hero-action-row {
   margin-top: auto !important;
   margin-bottom: 0 !important;
-  padding-top: 18px !important;
+  padding-top: 14px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -3974,11 +3985,40 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   max-height: 74px !important;
   padding: 4px 0 !important;
   box-sizing: border-box !important;
+  display: grid !important;
+  grid-template-columns: 68px minmax(0, 1fr) !important;
+  gap: 10px !important;
   align-items: center !important;
   overflow: hidden !important;
 }
 .developing .dev-row:last-child {
   border-bottom: none !important;
+}
+.developing .dev-time {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 3px !important;
+  width: 68px !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+.developing .dev-time span {
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.02em !important;
+}
+.developing .dev-time small {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  color: var(--ink-muted) !important;
+  text-transform: uppercase !important;
+}
+.developing .dev-content {
+  min-width: 0 !important;
+  overflow: hidden !important;
 }
 .developing .dev-title {
   font-family: 'Newsreader', serif !important;
@@ -4023,27 +4063,49 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 .topbar-live-clock {
   display: inline-flex !important;
   align-items: center !important;
-  font-size: 10.5px !important;
+  font-size: 9.5px !important;
   font-weight: 500 !important;
-  color: var(--ink-muted) !important;
-  opacity: 0.65 !important;
+  color: var(--ink-muted, #7c928a) !important;
+  opacity: 0.55 !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
-  height: 26px !important;
-  padding: 0 10px !important;
-  border-radius: 13px !important;
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  height: 22px !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
   font-variant-numeric: tabular-nums !important;
+  letter-spacing: 0.03em !important;
   margin-right: 6px !important;
   user-select: none !important;
   pointer-events: none !important;
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 900px) {
   .topbar-live-clock {
     display: none !important;
+  }
+  .main-nav {
+    display: none !important;
+  }
+  .topbar {
+    padding: 0 16px !important;
+    gap: 12px !important;
+  }
+  .brand-sub {
+    display: none !important;
+  }
+  .user-name {
+    display: none !important;
+  }
+  .user-profile {
+    padding: 2px !important;
+    background: transparent !important;
+    border: none !important;
+  }
+  .page {
+    padding-bottom: calc(var(--bottom-nav-height, 56px) + env(safe-area-inset-bottom, 20px) + 80px) !important;
   }
 }
 </style>
@@ -4224,7 +4286,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 <nav class="bottom-nav" aria-label="Quick navigation">
   <div class="bottom-nav-inner">
     <button data-route="Home" class="active"><span class="ico">⌂</span>Desk</button>
-    <button data-route="Latest"><span class="ico">◇</span>Radar</button>
+    <button data-route="Aetheria Read" id="bottomAetheriaBtn"><span class="ico">◎</span>Aetheria</button>
     <button data-route="Follow-up"><span class="ico">↗</span>Follow-up</button>
     <button data-route="Markets"><span class="ico">▦</span>Market</button>
     <button id="bottomCategoriesBtn" data-category-trigger="bottom" aria-expanded="false"><span class="ico">⋮</span>Categories</button>

@@ -1076,7 +1076,7 @@
       const source = String(x.latest_domain || x.domain || x.source_domains?.[0] || '').trim();
       const detail = [eventTime(x), source, Number.isFinite(sourceCount) ? `${sourceCount} reports` : ''].filter(Boolean).join(' · ');
       const change = x._editorial_selection?.change_evidence || {};
-      const changeLabel = change.confidence === 'HIGH' ? 'STRONG CHANGE EVIDENCE' : 'LIKELY CHANGE';
+      const changeLabel=change.confidence==='HIGH'?'STRONG CHANGE EVIDENCE':'LIKELY CHANGE';
       const context = String(change.what_is_new || x.description || '').trim();
       const known = String(change.what_was_known || '').trim();
       const changeContext = known && context ? `Previously: ${known} | New evidence: ${context}` : context;
@@ -1233,7 +1233,7 @@
     $('routeSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') runRouteSearch(); });
     requestAnimationFrame(() => {
       const input = $('routeSearchInput');
-      if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+      if (input) { input.focus({preventScroll:true}); input.setSelectionRange(input.value.length, input.value.length); }
       if (state.searchQuery) runRouteSearch(state.searchQuery);
     });
   }
@@ -1324,12 +1324,12 @@
     const root = document.documentElement;
     const previousBehavior = root.style.scrollBehavior;
     root.style.scrollBehavior = 'auto';
-    window.scrollTo(0, 0);
+    window.scrollTo(0,0);
     root.scrollTop = 0;
     document.body.scrollTop = 0;
     root.style.scrollBehavior = previousBehavior;
   }
-  async function navigate(route, options = {}) {
+  async function navigate(route, options={}) {
     if (!ROUTES.includes(route)) return;
     const changedView = state.route !== route;
     state.route = route;
@@ -1733,13 +1733,13 @@
       if (!e.target.closest('#searchDock') && !e.target.closest('#searchBtn')) closeSearchDock();
     });
     window.addEventListener('resize', () => { ['top', 'bottom'].forEach(kind => { const p = $(kind === 'top' ? 'topCategoryPanel' : 'bottomCategoryPanel'); const t = document.querySelector(`[data-category-trigger="${kind}"]`); if (p?.classList.contains('open')) positionCategoryPanel(p, t, kind); }); });
-    window.addEventListener('popstate', () => { const r = decodeURIComponent(location.hash.replace(/^#/, '') || 'Home'); if (ROUTES.includes(r)) navigate(r, { history: false }); });
+    window.addEventListener('popstate', () => { const r = decodeURIComponent(location.hash.replace(/^#/, '') || 'Home'); if (ROUTES.includes(r)) navigate(r,{history:false}); });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         closeAllPopups();
         return;
       }
-      if (storyModalOpen() && e.key === 'Tab') {
+      if(storyModalOpen() && e.key==='Tab') {
         const modal = $('storyModal');
         const focusable = [...modal.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
           .filter(el => el.getClientRects().length > 0);
