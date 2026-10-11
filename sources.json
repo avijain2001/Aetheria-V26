@@ -69,7 +69,7 @@
     "topic": "India",
     "url": "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1",
     "tier": "official",
-    "interval_sec": 120,
+    "interval_sec": 60,
     "max_items": 80,
     "country": "IN",
     "language": "en"
@@ -80,7 +80,7 @@
     "topic": "India",
     "url": "https://www.thehindu.com/news/feeder/default.rss",
     "tier": "publisher",
-    "interval_sec": 120,
+    "interval_sec": 60,
     "max_items": 60,
     "country": "IN",
     "language": "en"
@@ -91,7 +91,7 @@
     "topic": "India",
     "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
     "tier": "publisher",
-    "interval_sec": 120,
+    "interval_sec": 60,
     "max_items": 60,
     "country": "IN",
     "language": "en"
@@ -102,7 +102,7 @@
     "topic": "Markets",
     "url": "https://www.livemint.com/rss/news",
     "tier": "publisher",
-    "interval_sec": 120,
+    "interval_sec": 60,
     "max_items": 60,
     "country": "IN",
     "language": "en"
@@ -406,49 +406,59 @@
     "max_items": 150
   },
   {
-    "name": "The Hindu",
+    "name": "The Hindu Top Stories",
     "provider": "The Hindu",
     "topic": "India",
     "url": "https://www.thehindu.com/news/feeder/default.rss",
-    "tier": "publisher",
-    "interval_sec": 120,
-    "max_items": 150
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
   },
   {
-    "name": "Times of India",
+    "name": "Times of India Top Stories",
     "provider": "Times of India",
     "topic": "India",
     "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
-    "tier": "publisher",
-    "interval_sec": 120,
-    "max_items": 150
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
   },
   {
-    "name": "Hindustan Times",
+    "name": "Hindustan Times India",
     "provider": "Hindustan Times",
     "topic": "India",
     "url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
-    "tier": "publisher",
-    "interval_sec": 120,
-    "max_items": 150
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
   },
   {
-    "name": "NDTV",
+    "name": "NDTV Top Stories",
     "provider": "NDTV",
     "topic": "India",
     "url": "https://feeds.feedburner.com/ndtvnews-top-stories",
-    "tier": "publisher",
-    "interval_sec": 120,
-    "max_items": 150
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
   },
   {
-    "name": "Indian Express",
+    "name": "Indian Express Latest",
     "provider": "Indian Express",
     "topic": "India",
     "url": "https://indianexpress.com/feed/",
-    "tier": "publisher",
-    "interval_sec": 120,
-    "max_items": 150
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
   },
   {
     "name": "Business Standard",
@@ -465,7 +475,7 @@
     "topic": "Markets",
     "url": "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
     "tier": "publisher",
-    "interval_sec": 120,
+    "interval_sec": 60,
     "max_items": 150
   },
   {
@@ -478,31 +488,15 @@
     "max_items": 150
   },
   {
-    "name": "Mint",
-    "provider": "Mint",
-    "topic": "Business",
+    "name": "Livemint Latest News",
+    "provider": "Livemint",
+    "topic": "Economy",
     "url": "https://www.livemint.com/rss/news",
-    "tier": "publisher",
-    "interval_sec": 120,
-    "max_items": 150
-  },
-  {
-    "name": "NOAA/NHC Atlantic",
-    "provider": "NOAA/NHC",
-    "topic": "Weather",
-    "url": "https://www.nhc.noaa.gov/index-at.xml",
-    "tier": "official",
-    "interval_sec": 60,
-    "max_items": 120
-  },
-  {
-    "name": "NOAA/NHC Eastern Pacific",
-    "provider": "NOAA/NHC",
-    "topic": "Weather",
-    "url": "https://www.nhc.noaa.gov/index-ep.xml",
-    "tier": "official",
-    "interval_sec": 60,
-    "max_items": 120
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
   },
   {
     "name": "USGS Earthquakes",
@@ -560,13 +554,15 @@
     "max_items": 120
   },
   {
-    "name": "India PIB Press Releases",
-    "provider": "Government of India PIB",
+    "name": "PIB India Official Releases",
+    "provider": "PIB",
     "topic": "India",
     "url": "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=1",
     "tier": "official",
-    "interval_sec": 60,
-    "max_items": 120
+    "interval_sec": 45,
+    "max_items": 50,
+    "country": "IN",
+    "language": "en"
   },
   {
     "name": "European Commission Press Corner",
@@ -908,20 +904,22 @@
     "provider": "NDTV",
     "topic": "India",
     "url": "https://feeds.feedburner.com/ndtvkhabar-latest",
-    "tier": "publisher",
-    "interval_sec": 120,
-    "max_items": 150,
-    "language": "hi"
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "language": "hi",
+    "country": "IN"
   },
   {
     "name": "Amar Ujala Breaking Hindi",
     "provider": "Amar Ujala",
     "topic": "India",
     "url": "https://www.amarujala.com/rss/breaking-news.xml",
-    "tier": "publisher",
-    "interval_sec": 120,
-    "max_items": 150,
-    "language": "hi"
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "language": "hi",
+    "country": "IN"
   },
   {
     "name": "Amar Ujala Delhi",
@@ -929,7 +927,7 @@
     "topic": "Local",
     "url": "https://www.amarujala.com/rss/delhi.xml",
     "tier": "publisher",
-    "interval_sec": 120,
+    "interval_sec": 60,
     "max_items": 120,
     "language": "hi"
   },
@@ -939,7 +937,7 @@
     "topic": "India",
     "url": "https://www.amarujala.com/rss/uttar-pradesh.xml",
     "tier": "publisher",
-    "interval_sec": 120,
+    "interval_sec": 60,
     "max_items": 120,
     "language": "hi"
   },
@@ -2062,5 +2060,137 @@
     "enabled": true,
     "language": "hi",
     "country": "IN"
+  },
+  {
+    "name": "ANI News National",
+    "provider": "ANI",
+    "topic": "India",
+    "url": "https://news.google.com/rss/search?q=site:aninews.in&hl=en-IN&gl=IN&ceid=IN:en",
+    "tier": "wire",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "Times of India National",
+    "provider": "Times of India",
+    "topic": "India",
+    "url": "https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms",
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "Economic Times Top Stories",
+    "provider": "Economic Times",
+    "topic": "Markets",
+    "url": "https://economictimes.indiatimes.com/rssfeedstopstories.cms",
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "Economic Times Markets",
+    "provider": "Economic Times",
+    "topic": "Markets",
+    "url": "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "Economic Times News",
+    "provider": "Economic Times",
+    "topic": "Economy",
+    "url": "https://economictimes.indiatimes.com/news/rssfeeds/1715249553.cms",
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "The Hindu National",
+    "provider": "The Hindu",
+    "topic": "India",
+    "url": "https://www.thehindu.com/news/national/feeder/default.rss",
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "Indian Express National",
+    "provider": "Indian Express",
+    "topic": "India",
+    "url": "https://indianexpress.com/section/india/feed/",
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "Livemint Markets",
+    "provider": "Livemint",
+    "topic": "Markets",
+    "url": "https://www.livemint.com/rss/markets",
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "NDTV India News",
+    "provider": "NDTV",
+    "topic": "India",
+    "url": "https://feeds.feedburner.com/ndtvnews-india-news",
+    "tier": "tier1",
+    "interval_sec": 45,
+    "max_items": 60,
+    "country": "IN",
+    "language": "en"
+  },
+  {
+    "name": "Navbharat Times Live",
+    "provider": "Navbharat Times",
+    "topic": "India",
+    "url": "https://news.google.com/rss/search?q=site:navbharattimes.indiatimes.com&hl=hi&gl=IN&ceid=IN:hi",
+    "tier": "tier1",
+    "interval_sec": 60,
+    "max_items": 60,
+    "country": "IN",
+    "language": "hi"
+  },
+  {
+    "name": "Dainik Jagran National",
+    "provider": "Dainik Jagran",
+    "topic": "India",
+    "url": "https://rss.jagran.com/rss/news/national.xml",
+    "tier": "tier1",
+    "interval_sec": 60,
+    "max_items": 60,
+    "country": "IN",
+    "language": "hi"
+  },
+  {
+    "name": "Dainik Bhaskar Live",
+    "provider": "Dainik Bhaskar",
+    "topic": "India",
+    "url": "https://news.google.com/rss/search?q=site:bhaskar.com&hl=hi&gl=IN&ceid=IN:hi",
+    "tier": "tier1",
+    "interval_sec": 60,
+    "max_items": 60,
+    "country": "IN",
+    "language": "hi"
   }
 ]

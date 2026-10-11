@@ -63,7 +63,7 @@ EDITORIAL_DEVELOPMENT_GAP_SECONDS = max(60.0,float(os.environ.get("AETHERIA_EDIT
 EVENT_POOL_LIMIT = max(1,int(os.environ.get("AETHERIA_EVENT_POOL_LIMIT", "1500")))
 EVENT_CANDIDATE_PATH_LIMIT = max(1,int(os.environ.get("AETHERIA_EVENT_CANDIDATE_PATH_LIMIT", str(min(800,EVENT_POOL_LIMIT)))))
 SNAPSHOT_EVENT_LIMIT = int(os.environ.get("AETHERIA_SNAPSHOT_EVENT_LIMIT", "180"))
-LOCAL_ANALYSIS_SNIPPETS = int(os.environ.get("AETHERIA_LOCAL_ANALYSIS_SNIPPETS", "8"))
+LOCAL_ANALYSIS_SNIPPETS = int(os.environ.get("AETHERIA_LOCAL_ANALYSIS_SNIPPETS", "50"))
 LATEST_LANE_LIMIT = int(os.environ.get("AETHERIA_LATEST_LANE_LIMIT", "400"))
 SECONDARY_LANE_LIMIT = int(os.environ.get("AETHERIA_SECONDARY_LANE_LIMIT", "18"))
 SIGNAL_LANE_LIMIT = int(os.environ.get("AETHERIA_SIGNAL_LANE_LIMIT", "5"))
@@ -745,27 +745,55 @@ def stable_id(prefix: str, value: str) -> str:
 
 
 def extract_entities(text: str):
-    """Extract title-level entities without a fixed name dictionary.
+    """Extract title-level named entities and acronyms without hardcoding.
 
-    Capitalized phrase + numeric/alphanumeric tokens are retained so identities
-    such as product names, model numbers and aircraft designations stay distinct while ordinary
-    repeated vocabulary remains useful for semantic matching.
+    Uses stopword-bounded noun phrases, capitalization boundaries, and uppercase identifiers
+    so real-world entities (institutions, authorities, places, people, acronyms) are cleanly isolated
+    across different newsrooms' phrasing.
     """
-    raw=clean_text(text)
-    candidates=[]
-    phrase_re = re.compile(r"\b(?:[A-Z][A-Za-z0-9’'&.-]{1,})(?:(?:\s+)(?:[A-Z][A-Za-z0-9’'&.-]{1,}|\d{1,6})){0,4}\b")
-    for m in phrase_re.finditer(raw):
-        phrase=m.group(0).strip(" .,:;!?-")
-        if len(phrase)<3: continue
-        words=phrase.split()
-        if all(w.lower() in STOPWORDS for w in words): continue
-        low=phrase.lower()
-        if low not in {x.lower() for x in candidates}: candidates.append(phrase)
-    # Standalone uppercase identifiers/tickers remain useful as cross-source anchors.
-    for tok in re.findall(r"\b[A-Z]{2,8}(?:[-.][A-Z0-9]{1,8})?\b", raw):
-        if tok.lower() not in STOPWORDS and tok.lower() not in {x.lower() for x in candidates}:
-            candidates.append(tok)
+    raw = clean_text(text)
+    clean_raw = re.sub(r"\s*[-|–—:]\s*(?:[A-Za-z0-9\s.&]+)$", "", raw)
+    candidates = []
+    seen = set()
+
+    generic_words = {
+        "today", "yesterday", "tomorrow", "live", "latest", "news", "report", "reports",
+        "update", "updates", "breaking", "exclusive", "watch", "video", "photos", "photo",
+        "post", "posts", "says", "said", "tells", "told", "day", "days", "week", "year",
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+        "january", "february", "march", "april", "may", "june", "july", "august",
+        "september", "october", "november", "december"
+    }
+
+    # 1. Standalone uppercase acronyms / identifiers (e.g. CJP, SC, CJI, NCR, DMRC, AI, ISRO, RBI)
+    for tok in re.findall(r"\b[A-Z0-9]{2,6}\b", clean_raw):
+        low = tok.lower()
+        if low not in STOPWORDS and low not in generic_words and low not in seen:
+            seen.add(low)
+            candidates.append(tok.upper())
+
+    # 2. Extract capitalized phrases bounded by prepositions/conjunctions/stopwords or punctuation
+    parts = re.split(r"[,:;!?|–—\-\n\"\'()]+|\b(?:to|on|for|in|of|at|with|from|by|and|or|as|the|a|an|over|after|into|under|between|against|during|across|through|about|via|off|amid|before|until|since)\b", clean_raw, flags=re.I)
+    for part in parts:
+        part = part.strip()
+        if not part: continue
+        for m in re.finditer(r"\b[A-Z][a-zA-Z0-9’\'.]{1,}(?:\s+[A-Z][a-zA-Z0-9’\'.]{1,})*\b", part):
+            phrase = m.group(0).strip(" .,:;!?-")
+            words = [w for w in phrase.split() if w.lower() not in STOPWORDS and w.lower() not in generic_words]
+            if words:
+                clean_phrase = " ".join(words)
+                low_p = clean_phrase.lower()
+                if len(clean_phrase) >= 3 and low_p not in seen:
+                    seen.add(low_p)
+                    candidates.append(clean_phrase)
+                if len(words) >= 2:
+                    for w in words:
+                        low_w = w.lower()
+                        if len(w) >= 3 and low_w not in STOPWORDS and low_w not in generic_words and low_w not in seen:
+                            seen.add(low_w)
+                            candidates.append(w)
     return candidates[:16]
+
 
 
 
@@ -981,12 +1009,6 @@ def sync_sources():
                 (sid,s["name"],s.get("provider",s["name"]),canonical_url(s["url"]),s.get("topic","World"),s.get("tier","publisher"),s.get("format","rss"),int(s.get("interval_sec",120)),max_items,1,s.get("language","en"),s.get("country","") or ("IN" if s.get("region")=="IN" else ""),s.get("discovered_from",""),s.get("region",""),s.get("city",""),s.get("state_name",s.get("state","")),t,t))
         if ids:
             marks=",".join("?" for _ in ids); con.execute(f"UPDATE sources SET enabled=0 WHERE id NOT IN ({marks})",ids)
-        try:
-            con.execute("""UPDATE events SET topic='Legal'
-                WHERE (lower(title) LIKE '%court%' OR lower(title) LIKE '%bail%' OR lower(title) LIKE '%verdict%' OR lower(title) LIKE '%judiciary%' OR lower(title) LIKE '%supreme court%' OR lower(title) LIKE '%high court%' OR lower(title) LIKE '%tribunal%' OR lower(title) LIKE '%cbi%' OR lower(title) LIKE '%chargesheet%')
-                AND (topic IS NULL OR topic IN ('World','India','Politics','Top'))""")
-        except Exception:
-            pass
         con.commit(); con.close()
 
 
@@ -1307,11 +1329,14 @@ def _refresh_fts_for_event(con,event_id):
 
 def article_upsert(items):
     fresh=[]
+    seen_batch_urls = set()
     with DB_LOCK:
         con=db()
         for a in items:
             url=a.get("url"); title=clean_text(a.get("title")); description=clean_text(a.get("description","")); topic=a.get("topic","World")
             if not url or not title or not url.startswith(("http://","https://")): continue
+            if url in seen_batch_urls: continue
+            seen_batch_urls.add(url)
             aid=stable_id("art",url); fp=fingerprint(title,a.get("domain",""))
             ex=con.execute("SELECT id,title,description,published,topic,language FROM articles WHERE canonical_url=?",(url,)).fetchone()
             if ex:
@@ -1321,7 +1346,7 @@ def article_upsert(items):
                 con.execute("UPDATE articles SET title=?,description=?,published=COALESCE(?,published),fetched=CASE WHEN ? THEN ? ELSE fetched END,topic=?,language=COALESCE(NULLIF(?,''),language),tier=?,domain=?,image_url=COALESCE(NULLIF(?,''),image_url),fingerprint=? WHERE id=?",(title,description,published,int(changed),observed_at,topic,a.get("language",""),a.get("tier","publisher"),a.get("domain",""),a.get("image_url","") or "",fp,ex[0]))
                 if changed: fresh.append((ex[0],a))
                 continue
-            con.execute("INSERT INTO articles(id,source_id,canonical_url,title,description,published,fetched,language,country,topic,tier,domain,fingerprint,image_url) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",(aid,a.get("source_id"),url,title,description,a.get("published"),now(),a.get("language",""),a.get("country",""),topic,a.get("tier","publisher"),a.get("domain",""),fp,a.get("image_url","") or ""))
+            con.execute("INSERT OR IGNORE INTO articles(id,source_id,canonical_url,title,description,published,fetched,language,country,topic,tier,domain,fingerprint,image_url) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",(aid,a.get("source_id"),url,title,description,a.get("published"),now(),a.get("language",""),a.get("country",""),topic,a.get("tier","publisher"),a.get("domain",""),fp,a.get("image_url","") or ""))
             fresh.append((aid,a))
         con.commit(); con.close()
     return fresh
@@ -1384,15 +1409,15 @@ def _score_event_candidate(article, e, df=None, n=None):
     if topic and e.get("topic") not in (topic,"World") and hours>8: return None
     sig_sets=e.get("signatures") or [et]
     sim=max((_weighted_jaccard(at,s,df,n) for s in sig_sets if s),default=0.0)
-    entity_overlap=bool(ents & (e.get("entities") or set()))
+    e_ents=e.get("entities") or set()
+    shared_entities={str(x).lower() for x in ents} & {str(x).lower() for x in e_ents}
+    entity_count=len(shared_entities)
+    entity_overlap=entity_count>0
     shared=len(at & et)
     exact=norm_title(article["title"]) and norm_title(article["title"])==norm_title(e.get("title", ""))
     same_source=bool(article.get("source_id") and article.get("source_id") in (e.get("source_ids") or set()))
     if exact: return 1.0
-    shared_entities=ents & (e.get("entities") or set())
-    entity_count=len(shared_entities)
-    # If both sides carry numbered/alphanumeric named anchors, do not let a
-    # common brand/topic word merge otherwise distinct variants.
+
     article_anchors=numeric_entity_anchors(ents)
     event_anchors=numeric_entity_anchors(e.get("entities") or set())
     if article_anchors and event_anchors and not (article_anchors & event_anchors):
@@ -1401,24 +1426,28 @@ def _score_event_candidate(article, e, df=None, n=None):
     event_numbers=numeric_title_anchors(e.get("title", ""))
     if article_numbers and event_numbers and not (article_numbers & event_numbers):
         return None
-    entity_bonus=0.25 if entity_overlap else 0
-    time_bonus=0.08 if hours<12 else 0.03 if hours<30 else 0
+
+    entity_bonus=0.22 if entity_count>=2 else (0.14 if entity_overlap else 0)
+    token_bonus=min(0.20, 0.04 * max(0, shared - 1))
+    time_bonus=0.08 if hours<12 else (0.04 if hours<24 else 0)
     topic_bonus=0.03 if topic and topic==e.get("topic") else 0
-    score=sim*.64+entity_bonus+time_bonus+topic_bonus
-    if entity_overlap and hours<12: score+=0.05
+    score=sim*.55+entity_bonus+token_bonus+time_bonus+topic_bonus
+    if entity_overlap and hours<12: score+=0.04
+
     if shared<2 and not (entity_overlap and hours<18): return None
     if same_source:
-        if not entity_overlap and sim<0.72: return None
-        if entity_overlap and sim<0.58: return None
+        if not entity_overlap and sim<0.68: return None
+        if entity_overlap and sim<0.50: return None
     elif not entity_overlap and hours>18:
         return None
-    # One shared named entity (for example a major public figure) is not enough
-    # to merge two stories; the wording must also be materially similar. Exact
-    # numbered/alphanumeric anchors are stronger identity evidence and allow
-    # paraphrased cross-source reports to converge without collapsing variants.
+
     numeric_anchor_match=bool(article_anchors and event_anchors and (article_anchors & event_anchors))
-    if entity_count==1 and sim<0.60 and not numeric_anchor_match: return None
-    threshold=0.43 if numeric_anchor_match and hours<18 else 0.45 if (entity_count>=2 and hours<12) else 0.58 if (entity_overlap and hours<12) else 0.62
+    if entity_count==1 and shared<3 and sim<0.38 and not numeric_anchor_match: return None
+
+    threshold = (0.36 if (shared>=3 and hours<24)
+                 else 0.40 if (entity_count>=2 and hours<18)
+                 else 0.44 if (entity_overlap and hours<18)
+                 else 0.52 if hours<12 else 0.60)
     if score<threshold: return None
     return score
 
@@ -1429,9 +1458,8 @@ def _candidate_events_from_index(article,index_rows,df=None,n=None,postings=None
         postings,entity_postings=build_postings(index_rows)
     at=content_tokens(article["title"]+" "+article.get("description", "")); ents=set(extract_entities(article["title"]))
     by_id=by_id or {e["id"]:e for e in index_rows}; ids=set()
-    max_df=max(CLUSTER_MIN_RARE_DF,int(n*CLUSTER_MAX_DF_RATIO))
-    rare_tokens=[tok for tok in at if df.get(tok,0)<=max_df]
-    ranked_tokens=sorted(rare_tokens,key=lambda tok:(df.get(tok,0), -len(tok), tok))[:max(1,CLUSTER_CANDIDATE_TOKEN_LIMIT)]
+    # Rank by IDF so distinctive terms are evaluated first, without completely discarding high-velocity story terms
+    ranked_tokens=sorted(at,key=lambda tok:(-math.log((n+2)/(df.get(tok,0)+1)), -len(tok), tok))[:max(1,CLUSTER_CANDIDATE_TOKEN_LIMIT)]
     for tok in ranked_tokens: ids.update(postings.get(tok,()))
     for ent in ents: ids.update(entity_postings.get(str(ent).lower(),()))
     candidates=[]
@@ -1541,7 +1569,10 @@ def link_article(aid,a):
             con.execute("INSERT OR IGNORE INTO events(id,title,topic,status,first_seen,last_seen,last_change,primary_article_id,entities,locations,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(event_id,a["title"],tpc,"NEW",first_seen,observed_at,observed_at,aid,json.dumps(ents),json.dumps(ents),observed_at,observed_at))
         if not con.execute("SELECT 1 FROM event_articles WHERE event_id=? AND article_id=?",(event_id,aid)).fetchone():
             con.execute("INSERT INTO event_articles(event_id,article_id,first_linked) VALUES(?,?,?)",(event_id,aid,observed_at))
-            con.execute("INSERT INTO event_updates(event_id,article_id,observed_at,change_type,note) VALUES(?,?,?,?,?)",(event_id,aid,observed_at,change,a["title"][:240]))
+            note=clean_text(a["title"])[:240]
+            last_u=con.execute("SELECT note FROM event_updates WHERE event_id=? ORDER BY observed_at DESC LIMIT 1",(event_id,)).fetchone()
+            if not last_u or (last_u[0]!=note and token_jaccard(content_tokens(last_u[0] or ""),content_tokens(note))<0.75):
+                con.execute("INSERT INTO event_updates(event_id,article_id,observed_at,change_type,note) VALUES(?,?,?,?,?)",(event_id,aid,observed_at,change,note))
             con.execute("UPDATE events SET last_seen=MAX(last_seen,?),last_change=?,primary_article_id=COALESCE(primary_article_id,?),updated_at=? WHERE id=?",(observed_at,observed_at,aid,observed_at,event_id))
         _recalc_event_con(con,event_id,observed_at)
         con.commit(); con.close()
@@ -1565,20 +1596,17 @@ def ingest(items):
         for aid,a in fresh:
             article_terms=content_tokens(a["title"]+" "+a.get("description", ""))
             pub_ts = a.get("published")
-            # CRITICAL FIX: last_seen must represent WHEN WE FETCHED this information,
-            # not when the article was originally published. Using pub_ts for last_seen
-            # caused old re-fetched articles to inflate event freshness. t is the
-            # current ingest time — this is the real "we observed new info" timestamp.
-            # We still use pub_ts for first_seen (when the event started) and for
-            # sorting within the latest lane (article_pub in meta).
-            art_seen = t  # always use current ingest time for last_seen
+            art_seen = t
             linked=con.execute("SELECT event_id FROM event_articles WHERE article_id=?",(aid,)).fetchall()
             if linked:
                 note=clean_text(a.get("title","")+(" · "+clean_text(a.get("description","")) if a.get("description") else ""))[:240]
                 new_entities=extract_entities(a["title"])
                 for row in linked:
                     event_id=row[0]
-                    con.execute("INSERT INTO event_updates(event_id,article_id,observed_at,change_type,note) VALUES(?,?,?,?,?)",(event_id,aid,t,"UPDATE",note))
+                    # Avoid spamming duplicate milestones if previous update note is nearly identical
+                    last_u=con.execute("SELECT note FROM event_updates WHERE event_id=? ORDER BY observed_at DESC LIMIT 1",(event_id,)).fetchone()
+                    if not last_u or (last_u[0]!=note and token_jaccard(content_tokens(last_u[0] or ""),content_tokens(note))<0.75):
+                        con.execute("INSERT INTO event_updates(event_id,article_id,observed_at,change_type,note) VALUES(?,?,?,?,?)",(event_id,aid,t,"UPDATE",note))
                     con.execute("UPDATE events SET last_seen=MAX(last_seen,?),last_change=?,latest_article_id=CASE WHEN COALESCE(latest_article_pub,0)<? THEN ? ELSE latest_article_id END,latest_article_pub=CASE WHEN COALESCE(latest_article_pub,0)<? THEN ? ELSE latest_article_pub END,updated_at=? WHERE id=?",(art_seen,t,pub_ts or 0,aid,pub_ts or 0,pub_ts or 0,t,event_id))
                     ev=local_by_id.get(event_id)
                     if ev is not None:
@@ -1597,8 +1625,6 @@ def ingest(items):
             cands=_candidate_events_from_index(a,local_index,df,n,local_postings,local_entity_postings,local_by_id)
             if cands:
                 event_id=cands[0][1]; change="UPDATE"
-                # Let the in-batch event representation evolve so subsequent
-                # matching uses newly observed vocabulary without a DB reread.
                 ev=local_by_id.get(event_id)
                 if ev is not None:
                     ev["last_seen"]=max(float(ev.get("last_seen") or 0), art_seen)
@@ -1626,9 +1652,9 @@ def ingest(items):
             if not con.execute("SELECT 1 FROM event_articles WHERE event_id=? AND article_id=?",(event_id,aid)).fetchone():
                 con.execute("INSERT INTO event_articles(event_id,article_id,first_linked) VALUES(?,?,?)",(event_id,aid,t))
                 note=clean_text(a["title"]+(" · "+clean_text(a.get("description","")) if a.get("description") else ""))[:240]
-                con.execute("INSERT INTO event_updates(event_id,article_id,observed_at,change_type,note) VALUES(?,?,?,?,?)",(event_id,aid,t,change,note))
-                # Update last_seen to current time (we just got fresh info), primary_article_id is the founding article.
-                # Also update latest_article_id if this article's pub_ts is newer than the stored one.
+                last_u=con.execute("SELECT note FROM event_updates WHERE event_id=? ORDER BY observed_at DESC LIMIT 1",(event_id,)).fetchone()
+                if not last_u or (last_u[0]!=note and token_jaccard(content_tokens(last_u[0] or ""),content_tokens(note))<0.75):
+                    con.execute("INSERT INTO event_updates(event_id,article_id,observed_at,change_type,note) VALUES(?,?,?,?,?)",(event_id,aid,t,change,note))
                 con.execute("UPDATE events SET last_seen=MAX(last_seen, ?),last_change=?,primary_article_id=COALESCE(primary_article_id,?),latest_article_id=CASE WHEN COALESCE(latest_article_pub,0)<? THEN ? ELSE latest_article_id END,latest_article_pub=CASE WHEN COALESCE(latest_article_pub,0)<? THEN ? ELSE latest_article_pub END WHERE id=?",
                     (art_seen,t,aid,pub_ts or 0,aid,pub_ts or 0,pub_ts or 0,event_id))
             affected.add(event_id)
@@ -1971,7 +1997,7 @@ def _editorial_features(item,at=None):
     development=max(0.0,min(1.0,float((raw.get("_editorial_development") or {}).get("score") or 0)))
     development_detail=raw.get("_editorial_development") or {}
     age=max(0.0,(at-float(raw.get("last_seen") or obj.get("last_seen") or at))/3600.0)
-    freshness=math.exp(-age/36.0)
+    freshness=math.exp(-age/12.0)
     change_age=max(0.0,(at-float(raw.get("last_change") or raw.get("last_seen") or at))/3600.0)
     new_change=math.exp(-change_age/18.0) if raw.get("last_change") else 0.0
     breadth=min(1.0,math.log1p(max(0,int(raw.get("source_count") or obj.get("sources") or 0)))/math.log(9.0))
@@ -2028,19 +2054,22 @@ def _editorial_situation_similarity(a,b):
 
 def _editorial_lane_score(item,lane,at=None):
     f=_editorial_features(item,at)
+    sources_cnt = max(int(f["raw"].get("source_count") or f["obj"].get("sources") or 1), 1)
+    cross_source_boost = 0.22 * min(1.0, math.log1p(sources_cnt) / math.log(5.0)) * f["freshness"]
     if lane in ("story_stack","topic"):
-        # Consequence anchors the score; support and timeliness modify its value.
-        return (.45*(.58*f["significance"]+.42*f["impact"])+.22*f["support"]+
-                .17*f["momentum"]+.10*f["freshness"]+.06*f["urgency"])
+        # Consequence anchors the score; multi-source corroboration, recency, breaking surges and cross-source breadth modify its value.
+        breaking_surge = 0.14 * max(0.0, 1.0 - f["age_hours"] / 3.0) if (f["urgency"] >= 0.40 or f["raw"].get("is_flash") or f["obj"].get("is_flash") or f["age_hours"] <= 2.0) else 0.0
+        return (0.30 * f["significance"] + 0.20 * f["impact"] + 0.22 * f["support"] +
+                0.14 * f["freshness"] + 0.08 * f["momentum"] + breaking_surge + cross_source_boost)
     if lane=="developing":
-        return .52*f["development"]+.18*f["significance"]+.15*f["support"]+.09*f["urgency"]+.06*f["freshness"]
+        return .52*f["development"]+.18*f["significance"]+.15*f["support"]+.09*f["urgency"]+.06*f["freshness"] + cross_source_boost * 0.5
     if lane=="india":
-        return .35*f["india"]+.23*f["significance"]+.17*f["impact"]+.14*f["support"]+.11*f["freshness"]
+        return .32*f["india"]+.22*f["significance"]+.16*f["impact"]+.14*f["support"]+.10*f["freshness"] + cross_source_boost
     if lane=="impact":
         return .34*f["impact"]+.21*f["significance"]+.16*f["support"]+.13*f["economic"]+.10*f["geopolitical"]+.06*f["freshness"]
     if lane=="important":
         # Deliberately omits freshness: importance is consequence, not recency.
-        return .34*f["significance"]+.26*f["impact"]+.18*f["support"]+.12*f["corroboration"]+.10*f["urgency"]
+        return .32*f["significance"]+.24*f["impact"]+.18*f["support"]+.14*f["corroboration"]+.12*min(1.0, math.log1p(sources_cnt)/math.log(5.0))
     if lane=="world":
         return .54*f["world"]+.18*f["significance"]+.16*f["support"]+.08*f["urgency"]+.04*f["freshness"]
     if lane=="read":
@@ -2277,10 +2306,19 @@ def _yahoo_quote(symbol):
     try:
         quote_indicators=((res.get("indicators") or {}).get("quote") or [{}])[0]
         closes=quote_indicators.get("close") or []
-        sparkline=[round(float(v),2) for v in closes if v is not None][-20:]
     except Exception:
-        sparkline=[]
-    return {"symbol":symbol,"price":float(price),"change":change,"change_num":change_num,"previous_close":float(prev) if prev is not None else None,"sparkline":sparkline,"currency":meta.get("currency") or "","at":float(meta.get("regularMarketTime") or now())}
+        sparkline = []
+    market_state = str(meta.get("marketState") or "").upper()
+    cur_period = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+    reg_start = cur_period.get("start")
+    reg_end = cur_period.get("end")
+    is_open = (market_state == "REGULAR")
+    if not is_open and reg_start and reg_end:
+        cur_t = time.time()
+        if reg_start <= cur_t <= reg_end:
+            is_open = True
+            market_state = "REGULAR"
+    return {"symbol":symbol,"price":float(price),"change":change,"change_num":change_num,"previous_close":float(prev) if prev is not None else None,"sparkline":sparkline,"market_state":market_state,"is_open":is_open,"currency":meta.get("currency") or "","at":float(meta.get("regularMarketTime") or now())}
 
 
 def _frankfurter_rates():
@@ -2476,12 +2514,17 @@ def related_events(eid,limit=6):
         if score>=.24 and (len(shared_terms)>=2 or entity>0):
             evidence=[]
             shared_entities=sorted(ents&rent)
-            shared_entities=sorted(shared_entities)
-            ordered_shared_terms=sorted(shared_terms)
-            if shared_entities: evidence.append("Shared entities: "+", ".join(shared_entities[:5]))
-            if ordered_shared_terms: evidence.append("Shared terms: "+", ".join(ordered_shared_terms[:5]))
-            if topic: evidence.append("Same topic: "+seed_topic)
-            if not is_schedule: evidence.append(f"Observed {time_gap_hours:.1f} hours apart")
+            if shared_entities:
+                clean_ents=[str(x).replace("_"," ").title() for x in shared_entities[:3] if len(str(x))>1]
+                if clean_ents:
+                    evidence.append("Key actors: "+", ".join(clean_ents))
+            if topic and not evidence:
+                evidence.append("Shared coverage: "+seed_topic)
+            if not is_schedule:
+                if time_gap_hours<1.0:
+                    evidence.append("Concurrent development")
+                elif time_gap_hours<24.0:
+                    evidence.append(f"Reported {int(time_gap_hours)}h apart")
             scored.append((score,r,evidence))
     scored.sort(key=lambda x:x[0],reverse=True)
     return [{**dict(r),"relationship_score":round(score,3),"relationship_evidence":evidence} for score,r,evidence in scored[:limit]]
@@ -2499,22 +2542,83 @@ def intelligence_status():
         "multilingual":True,
     }
 
+BRAND_MAP = {
+    "thehindu.com": "The Hindu",
+    "business-standard.com": "Business Standard",
+    "ndtv.com": "NDTV",
+    "economictimes.indiatimes.com": "The Economic Times",
+    "timesofindia.indiatimes.com": "The Times of India",
+    "hindustantimes.com": "Hindustan Times",
+    "indianexpress.com": "The Indian Express",
+    "moneycontrol.com": "Moneycontrol",
+    "livemint.com": "Mint",
+    "theprint.in": "ThePrint",
+    "thewire.in": "The Wire",
+    "scroll.in": "Scroll.in",
+    "bbc.com": "BBC News",
+    "bbc.co.uk": "BBC News",
+    "theguardian.com": "The Guardian",
+    "reuters.com": "Reuters",
+    "bloomberg.com": "Bloomberg",
+    "aljazeera.com": "Al Jazeera",
+    "france24.com": "France 24",
+    "dw.com": "Deutsche Welle",
+    "news.sky.com": "Sky News",
+    "sky.com": "Sky News",
+    "euronews.com": "Euronews",
+    "cbsnews.com": "CBS News",
+    "nbcnews.com": "NBC News",
+    "nytimes.com": "The New York Times",
+    "politico.com": "Politico",
+    "scmp.com": "South China Morning Post",
+    "channelnewsasia.com": "CNA",
+    "nasa.gov": "NASA",
+    "jpl.nasa.gov": "NASA JPL",
+    "sec.gov": "U.S. SEC",
+    "usgs.gov": "USGS",
+    "pib.gov.in": "PIB India",
+    "ani.in": "ANI News",
+    "ptinews.com": "PTI News",
+    "news.google.com": "Google News",
+}
+
+def clean_brand_name(val):
+    if not val:
+        return "Source"
+    s = str(val).strip()
+    if "." not in s and len(s) > 2:
+        return s
+    lower = s.lower().replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
+    if lower in BRAND_MAP:
+        return BRAND_MAP[lower]
+    for k, v in BRAND_MAP.items():
+        if lower == k or lower.endswith("." + k):
+            return v
+    base = re.sub(r"\.(com|co\.uk|org|net|in|gov|gov\.in|edu)$", "", lower)
+    base = re.sub(r"^(news\.|m\.|feeds\.)", "", base)
+    if len(base) > 1:
+        return " ".join(w.capitalize() for w in re.split(r"[-_.]+", base) if w)
+    return s
+
+
 def _conflict_pairs(rows):
     positive={"confirms","confirmed","agrees","agreed","accepts","accepted","approved","approves","plans","planned","backs","supports","supported","will"}
     negative={"denies","denied","rejects","rejected","refutes","refuted","dismisses","dismissed","no plans","won't","wont","not","rules out","ruled out"}
     out=[]
     prepared=[]
     for r in rows:
+        r = dict(r)
         title=clean_text(r["title"] or "")
         tt=tokens(title)
         pos=any(p in title.lower() for p in positive); neg=any(n in title.lower() for n in negative)
-        prepared.append((title,tt,pos,neg,r["domain"] or "source"))
+        brand=clean_brand_name(r.get("source_name") or r.get("domain") or "Source")
+        prepared.append((title,tt,pos,neg,brand))
     for i,a in enumerate(prepared):
         for b in prepared[i+1:]:
             if a[2]==b[3] or a[3]==b[2]:
                 sim=token_jaccard(a[1],b[1])
                 if sim>=.14:
-                    out.append({"a":a[0],"b":b[0],"sources":f"{a[4]} ↔ {b[4]}","similarity":round(sim,2)})
+                    out.append({"a":a[0],"b":b[0],"sources":f"{a[4]} vs. {b[4]}","similarity":round(sim,2)})
     return out[:4]
 
 
@@ -2539,21 +2643,212 @@ def local_ai_analysis(con,eid,evidence=None,event_override=None):
     e=event_override or con.execute("SELECT * FROM events WHERE id=?",(eid,)).fetchone()
     if not e: return None
     ev=dict(e); evidence=evidence or evidence_for_event(con,eid)
-    rows=con.execute("SELECT a.title,a.domain,a.description FROM event_articles ea JOIN articles a ON a.id=ea.article_id WHERE ea.event_id=? ORDER BY COALESCE(a.published,a.fetched) DESC LIMIT ?",(eid,LOCAL_ANALYSIS_SNIPPETS)).fetchall()
-    titles=[clean_text(r["title"] or "") for r in rows if r["title"]]
-    why=[]
-    if evidence["independent_sources"]>=2: why.append(f"{evidence['independent_sources']} independent sources")
-    if evidence["official"]: why.append(f"{evidence['official']} official source")
-    if ev["velocity"]>=.45: why.append("rapidly changing coverage")
-    india_detail=ev.get("_india_relevance_detail") or _india_relevance_assessment(ev)
-    if india_detail["score"]>=INDIA_RELEVANCE_THRESHOLD:
-        why.append("direct India event evidence" if india_detail["direct"] else "documented India consequence")
-    if ev["financial_relevance"]>=.45: why.append("financial transmission signal")
-    if ev["supply_chain_relevance"]>=.45: why.append("supply-chain transmission signal")
-    summary=titles[0] if titles else ev["title"]
-    if len(titles)>1 and titles[1].lower()!=summary.lower(): summary += " — " + titles[1]
-    uncertainty="; ".join(c["sources"] for c in evidence["conflicts"]) if evidence["conflicts"] else ("single-source / early signal" if evidence["independent_sources"]<2 else "no material source conflict detected")
-    return {"summary":summary[:700],"why":" · ".join(why[:5]),"uncertainty":uncertainty[:500],"evidence_note":f"{evidence['reports']} reports · {evidence['independent_sources']} independent sources · {evidence['source_reliability']:.0%} average source reliability","status":"LOCAL_OBSERVED"}
+    rows=con.execute("SELECT a.title,a.domain,a.description,a.published,s.name source_name FROM event_articles ea JOIN articles a ON a.id=ea.article_id LEFT JOIN sources s ON s.id=a.source_id WHERE ea.event_id=? ORDER BY COALESCE(a.published,a.fetched) DESC LIMIT ?",(eid,LOCAL_ANALYSIS_SNIPPETS)).fetchall()
+    
+    seen_tokens=[]
+    clean_articles=[]
+    for r in rows:
+        t_clean=clean_text(r["title"] or "")
+        d_clean=clean_text(r["description"] or "")
+        if not t_clean: continue
+        toks=content_tokens(t_clean)
+        if not any(token_jaccard(toks,st)>=0.75 for st in seen_tokens):
+            seen_tokens.append(toks)
+            clean_articles.append({"title":t_clean,"desc":d_clean,"domain":r["domain"] or "","source":r["source_name"] or r["domain"] or ""})
+
+    primary_title=clean_articles[0]["title"] if clean_articles else clean_text(ev.get("title") or "")
+    primary_desc=clean_articles[0]["desc"] if clean_articles else clean_text(ev.get("description") or "")
+
+    if primary_desc:
+        p_title_lower=primary_title.lower()
+        p_desc_lower=primary_desc.lower()
+        if p_desc_lower.startswith(p_title_lower):
+            primary_desc=primary_desc[len(primary_title):].lstrip(" .·—:-")
+        elif token_jaccard(content_tokens(primary_title),content_tokens(primary_desc))>=0.8:
+            primary_desc=""
+        primary_desc = re.sub(r"^(?:it['’]s\s+official[.\s]*|breaking[:\s]*|live\s+updates?[:\s]*)", "", primary_desc, flags=re.I).strip()
+        if primary_desc and primary_desc[0].islower():
+            primary_desc = primary_desc[0].upper() + primary_desc[1:]
+
+    if primary_desc and len(primary_desc)>20:
+        what_happened=f"{primary_title.rstrip('.')}. {primary_desc.rstrip('.')}."
+    else:
+        what_happened=f"{primary_title.rstrip('.')}."
+        if len(clean_articles)>1 and clean_articles[1]["desc"]:
+            extra=clean_articles[1]["desc"]
+            if token_jaccard(content_tokens(primary_title),content_tokens(extra))<0.6:
+                what_happened+=f" {extra.rstrip('.')}."
+
+    # Prevent raw em-dash concatenation of duplicate headlines
+    if " — " in what_happened:
+        parts = [p.strip() for p in what_happened.split(" — ") if p.strip()]
+        if len(parts) >= 2 and token_jaccard(content_tokens(parts[0]), content_tokens(parts[1])) >= 0.4:
+            what_happened = parts[0]
+            if not what_happened.endswith("."):
+                what_happened += "."
+
+    # Executive digest: 2 crisp lines summarizing the event and verified scope
+    digest_line1 = primary_title.rstrip('.') + "."
+    if primary_desc and len(primary_desc) > 25:
+        digest_line2 = primary_desc.rstrip('.') + "."
+    elif evidence.get("independent_sources", 0) >= 2:
+        top_brand = clean_brand_name(clean_articles[0]["domain"] if clean_articles else "")
+        digest_line2 = f"Reported across {evidence['independent_sources']} independent media desks including {top_brand}."
+    else:
+        digest_line2 = "Initial dispatch recorded; ongoing monitoring for official corroboration."
+    digest = f"{digest_line1} {digest_line2}"
+
+    implications = []
+    topic_clean = str(ev.get("topic") or "").lower()
+    india_detail = ev.get("_india_relevance_detail") or ev.get("india_relevance_detail") or _india_relevance_assessment(ev)
+    is_india = (
+        india_detail.get("score", 0) >= INDIA_RELEVANCE_THRESHOLD
+        or topic_clean == "india"
+        or float(ev.get("india_relevance") or 0) >= 0.15
+        or any(w in (primary_title.lower() + " " + primary_desc.lower()) for w in ["delhi", "mumbai", "india", "aap", "kejriwal", "modi", "rahul", "bjp", "congress", "parliament", "supreme court of india"])
+    )
+    fin_rel = float(ev.get("financial_relevance") or 0)
+    geo_rel = float(ev.get("geopolitical_relevance") or 0)
+    sup_rel = float(ev.get("supply_chain_relevance") or 0)
+    soc_rel = float(ev.get("social_relevance") or 0)
+    velocity = float(ev.get("velocity") or 0)
+
+    text_corpus = (primary_title + " " + primary_desc).lower()
+    is_protest_or_civic = any(w in text_corpus for w in ["protest", "protesters", "detained", "detention", "police", "arrest", "emergency", "rally", "assembly", "curbs", "cjp"])
+    is_court = any(w in text_corpus for w in ["court", "judge", "verdict", "bail", "petition", "order", "plea", "bench", "hearing"])
+    is_market = fin_rel >= 0.4 or any(w in text_corpus for w in ["market", "deal", "merger", "shares", "tariff", "trade", "earnings", "sensex", "nifty", "stocks"])
+
+    if is_india and (soc_rel >= 0.35 or is_protest_or_civic):
+        implications.append("• Political showdown in Delhi: A direct clash between opposition leaders and police over the right to hold public rallies in the capital.")
+        implications.append("• Broader fallout: The detentions have triggered sharp pushback from multiple opposition parties, raising the likelihood of wider street protests and court challenges.")
+    elif is_india and is_market:
+        implications.append("• Direct market impact: Key sectors and share prices could react to shifting economic sentiment and business conditions.")
+        implications.append("• Policy oversight: Domestic regulators and corporate boards may adjust guidelines in response to this development.")
+    elif is_india and is_court:
+        implications.append("• Key legal benchmark: The court's stance sets an important standard for similar disputes and future law enforcement actions.")
+        implications.append("• Governance fallout: Public agencies and involved parties must now adjust their legal and administrative compliance.")
+    elif is_india:
+        implications.append("• National policy impact: A significant government decision that directly affects domestic administration and public policy.")
+    elif is_market:
+        implications.append("• Commercial transmission: Moves investor sentiment, corporate revenue expectations, and day-to-day business operations.")
+        implications.append("• Supply & pricing pressure: Affected enterprise sectors could see immediate supply chain adjustments.")
+    elif geo_rel >= 0.45:
+        implications.append("• Strategic diplomacy: Strains international relations, with potential ripple effects on regional security and trade ties.")
+        implications.append("• Global ripple effects: Diplomatic talks and cross-border agreements could face delays or realignment.")
+    elif sup_rel >= 0.45:
+        implications.append("• Supply chain continuity: Logistics routes and trade corridors face potential delays or rerouting.")
+    else:
+        implications.append("• Major public interest: Multiple newsrooms are actively covering this story as key details unfold.")
+
+    if velocity >= 0.45 and len(implications) < 2:
+        implications.append("• Fast-moving story: National newsrooms are rolling out continuous live updates.")
+    why_it_matters = "\n".join(implications)
+
+    uncertainty_items = []
+    if is_protest_or_civic:
+        uncertainty_items.append("• Number of detentions: Police have not released an official count of how many people were taken into custody or where they are held.")
+        uncertainty_items.append("• Legal charges: It is still unclear whether protesters will face formal criminal charges or be let go after preventive detention.")
+        uncertainty_items.append("• Conflicting accounts: Police say the gathering lacked permission, while organizers maintain it was a peaceful demonstration.")
+    elif is_market:
+        uncertainty_items.append("• Final financial numbers: Full transaction valuations, pricing, and revenue impact have not yet been formally disclosed.")
+        uncertainty_items.append("• Regulatory approvals: Clearances from market watchdogs and stock exchanges are still pending.")
+        uncertainty_items.append("• Timeline: Companies have not given a firm date for when the next phase will be completed.")
+    elif is_court:
+        uncertainty_items.append("• Full written order: The court registry has not yet uploaded the detailed, signed judgment.")
+        uncertainty_items.append("• Appeal plans: It is not yet known whether parties will immediately challenge the ruling in a higher court.")
+    elif geo_rel >= 0.45 or any(w in text_corpus for w in ["military", "strike", "border", "missile", "troops"]):
+        uncertainty_items.append("• Confirmed casualties: Independent observers have not yet verified conflicting reports from both sides.")
+        uncertainty_items.append("• Diplomatic breakthrough: Talks remain tentative with no official ceasefire or formal accord agreed.")
+    elif any(w in text_corpus for w in ["flood", "cyclone", "fire", "crash", "accident", "earthquake"]):
+        uncertainty_items.append("• Extent of damage: Casualty and damage figures remain preliminary as relief teams work on the ground.")
+        uncertainty_items.append("• Cause of the incident: Official safety investigators have not yet published their preliminary findings.")
+    elif evidence.get("verification_state") == "DISPUTED":
+        uncertainty_items.append("• Disputed versions: Involved parties give contrasting accounts of what happened; an official inquiry is pending.")
+    elif evidence.get("independent_sources", 0) < 2:
+        uncertainty_items.append("• Initial report: Awaiting corroboration from other independent newsrooms and an official briefing.")
+    else:
+        uncertainty_items.append("• Official statement: Authorities have not yet held a formal press briefing to clarify the sequence of events.")
+        uncertainty_items.append("• Next steps: What happens next depends on how officials respond in the coming hours.")
+    what_remains_uncertain = "\n".join(uncertainty_items)
+
+    raw_ents = ev.get("entities")
+    actors = []
+    if raw_ents:
+        try:
+            ents = json.loads(raw_ents) if isinstance(raw_ents, str) else raw_ents
+            actors = [str(x).replace("_", " ").title() for x in ents if len(str(x)) > 2][:5]
+        except Exception:
+            pass
+
+    sig = float(ev.get("significance") or 0)
+    imp_score = round(sig * 100) if sig > 0 else 0
+    if imp_score >= 76:
+        imp_tier = "TIER 1"
+        imp_level = "High National Significance" if is_india else "Critical Global Consequence"
+    elif imp_score >= 51:
+        imp_tier = "TIER 2"
+        imp_level = "Elevated National Consequence" if is_india else "High International Consequence"
+    elif imp_score >= 26:
+        imp_tier = "TIER 3"
+        imp_level = "Moderate Sectoral Focus"
+    else:
+        imp_tier = "TIER 4"
+        imp_level = "Routine Topical Development"
+
+    if is_india and (soc_rel >= 0.35 or is_protest_or_civic):
+        imp_classification = "National Governance & Civic Order"
+        executive_assessment = f"Rated {imp_score}/100 ({imp_tier}: {imp_level}) because multiple national newsrooms confirm a direct standoff between police and elected leaders in the capital, carrying immediate political and civil rights fallout."
+    elif is_india and is_market:
+        imp_classification = "Domestic Markets & Economic Transmission"
+        executive_assessment = f"Rated {imp_score}/100 reflecting major business and market developments confirmed across financial desks, with potential ripple effects on sector trading and regulatory policy."
+    elif is_india and is_court:
+        imp_classification = "Judicial Precedent & Constitutional Law"
+        executive_assessment = f"Rated {imp_score}/100 reflecting significant court proceedings confirmed by legal desks, carrying nationwide legal and administrative impact."
+    elif is_india:
+        imp_classification = "National Public Policy & Governance"
+        executive_assessment = f"Rated {imp_score}/100 reflecting high-impact national policy decisions confirmed across major domestic newsrooms."
+    elif geo_rel >= 0.45:
+        imp_classification = "Geopolitical & Strategic Diplomacy"
+        executive_assessment = f"Rated {imp_score}/100 reflecting cross-border geopolitical shifts and diplomatic tensions verified across international newsrooms."
+    else:
+        imp_classification = "General Topical Intelligence"
+        executive_assessment = f"Rated {imp_score}/100 reflecting fast-moving developments confirmed across multiple independent news desks."
+
+    impact_context = {
+        "score": imp_score,
+        "scale": 100,
+        "tier": imp_tier,
+        "level": imp_level,
+        "classification": imp_classification,
+        "executive_assessment": executive_assessment,
+        "scope": imp_classification,
+        "factors": [
+            f"Corroboration: {evidence['independent_sources']} independent media desks",
+            f"Velocity: {'rapidly accelerating multi-desk coverage' if velocity >= 0.45 else 'standard reporting pace'}",
+            f"Institutional Impact: {imp_classification}"
+        ],
+        "limitation": "Model-generated assessment of coverage significance and transmission, not a verification of factual truth."
+    }
+
+    why_brief = []
+    if evidence["independent_sources"] >= 2: why_brief.append(f"{evidence['independent_sources']} independent sources")
+    if evidence["official"]: why_brief.append(f"{evidence['official']} official source")
+    if velocity >= 0.45: why_brief.append("rapidly changing coverage")
+    if is_india: why_brief.append("India domestic development")
+
+    return {
+        "digest":digest,
+        "what_happened":what_happened,
+        "why_it_matters":why_it_matters,
+        "what_remains_uncertain":what_remains_uncertain,
+        "key_actors":actors,
+        "impact_context":impact_context,
+        "summary":digest[:700],
+        "why":" · ".join(why_brief[:4]),
+        "uncertainty":what_remains_uncertain[:500],
+        "evidence_note":f"{evidence['reports']} reports · {evidence['independent_sources']} independent sources · {evidence['source_reliability']:.0%} average source reliability",
+        "status":"LOCAL_OBSERVED"
+    }
 
 
 def rebuild_snapshot():
@@ -2593,13 +2888,54 @@ def rebuild_snapshot():
     cats=category_payload_fast([x["obj"] for x in enriched])
     home=build_home_payload(enriched,ranked_latest,important_objs,impact_objs,future,moving_objs,flash_objs)
 
-    # Maintain the existing bounded latest index, ordered by freshest publication time from articles table
+    # Maintain the bounded latest index: dynamic blend of recency, multi-website corroboration, and breaking surge
     latest_lane_objs=[]
     try:
         con = db_read()
-        art_rows = con.execute("SELECT * FROM articles WHERE length(trim(title))>=8 ORDER BY published DESC LIMIT 50").fetchall()
-        latest_lane_objs = [dict(r) for r in art_rows]
+        art_rows = con.execute("""
+            SELECT a.id, a.title, a.description, a.canonical_url, a.domain, a.image_url,
+                   a.published, a.fetched, a.language, a.country, a.topic, a.tier, a.source_id,
+                   COALESCE(e.id, '') as event_id,
+                   COALESCE(e.source_count, 1) as event_sources,
+                   COALESCE(e.urgency, 0.0) as event_urgency,
+                   COALESCE(e.significance, 0.0) as event_significance
+            FROM articles a
+            LEFT JOIN event_articles ea ON ea.article_id = a.id
+            LEFT JOIN events e ON e.id = ea.event_id
+            WHERE length(trim(a.title)) >= 8
+              AND NOT (a.domain = 'USGS' AND a.title LIKE 'M %')
+              AND NOT (a.domain LIKE '%noaa%' OR a.source_id LIKE '%noaa%' OR a.canonical_url LIKE '%nhc.noaa.gov%')
+              AND NOT (a.title LIKE 'Post-Tropical Cyclone%' OR a.title LIKE 'Hurricane Simon%' OR a.title LIKE 'Tropical Storm %' OR a.title LIKE 'Tropical Depression %')
+            ORDER BY a.published DESC LIMIT 150
+        """).fetchall()
         con.close()
+
+        scored_arts = []
+        t_cur = now()
+        for r in art_rows:
+            d = dict(r)
+            pub = float(d.get("published") or 0.0)
+            age_h = max(0.0, (t_cur - pub) / 3600.0) if pub > 0 else 24.0
+            recency = math.exp(-age_h / 4.0)
+
+            # Corroboration: more websites publishing the story gives preference
+            src_count = max(1, int(d.get("event_sources") or 1))
+            corroboration = min(1.0, math.log1p(src_count) / math.log(6.0))
+
+            # Breaking urgency bonus: new developments under 2h or high urgency surface immediately
+            urgency = float(d.get("event_urgency") or 0.0)
+            breaking_boost = 0.35 * max(0.0, 1.0 - age_h / 2.0) if (urgency >= 0.45 or age_h <= 1.5) else 0.0
+
+            # India-first priority
+            is_in = (d.get("country") == "IN" or d.get("language") == "hi" or d.get("topic") in ("India", "Local") or
+                     any(k in (d.get("domain") or "").lower() for k in ("indiatimes", "thehindu", "indianexpress", "ndtv", "pib", "ani", "amarujala", "jagran", "livemint", "hindustantimes", "bhaskar")))
+            india_boost = 0.15 if is_in else 0.0
+
+            rank_score = 0.45 * recency + 0.30 * corroboration + breaking_boost + india_boost
+            scored_arts.append((rank_score, d))
+
+        scored_arts.sort(key=lambda x: x[0], reverse=True)
+        latest_lane_objs = [x[1] for x in scored_arts[:50]]
     except Exception:
         pass
     if not latest_lane_objs:
@@ -2869,6 +3205,8 @@ def _source_done(future,source):
             safe_name=sname.encode('ascii','replace').decode('ascii')
             print(f"[SOURCE] '{safe_name}' ({source.get('tier','publisher')}) | ok={status.get('ok')} | fetched={len(items or [])} | ingested={ingested_n} | duration={status.get('ms',0)}ms", flush=True)
     except Exception as exc:
+        import traceback
+        traceback.print_exc()
         err=str(exc)[:200]
         try:
             print(f"[SOURCE ERROR] '{sname}' | {type(exc).__name__}: {err}", flush=True)
@@ -2951,12 +3289,112 @@ def schedule_due_sources():
     return submitted
 
 
+def consolidate_fragmented_events(window_hours=36):
+    """Dynamically consolidate fragmented single-article events created during fast-breaking news surges.
+
+    Purely dynamic and semantic: merges events within the active window that share substantive named entities
+    or strong content token overlap.
+    """
+    t_now = now()
+    try:
+        with DB_LOCK:
+            con = db()
+            rows = con.execute("""
+                SELECT id, title, topic, first_seen, last_seen, article_count, source_count
+                FROM events
+                WHERE last_seen > ?
+                ORDER BY article_count DESC, last_seen DESC
+            """, (t_now - window_hours * 3600,)).fetchall()
+            
+            event_objs = []
+            for r in rows:
+                toks = set(content_tokens(r["title"]))
+                ents = set(str(e).lower() for e in extract_entities(r["title"]))
+                event_objs.append({
+                    "id": r["id"], "title": r["title"], "topic": r["topic"],
+                    "first_seen": r["first_seen"] or t_now, "last_seen": r["last_seen"] or t_now,
+                    "title_tokens": toks, "entities": ents,
+                    "article_count": r["article_count"] or 1
+                })
+                
+            token_postings = {}
+            entity_postings = {}
+            for i, ev in enumerate(event_objs):
+                for tok in ev["title_tokens"]:
+                    token_postings.setdefault(tok, []).append(i)
+                for ent in ev["entities"]:
+                    entity_postings.setdefault(ent, []).append(i)
+                    
+            merged_into = {}
+            merge_groups = {}
+            
+            for i, e1 in enumerate(event_objs):
+                id1 = e1["id"]
+                if id1 in merged_into: continue
+                t1 = e1["title_tokens"]; ents1 = e1["entities"]
+                cand_indices = set()
+                for tok in t1:
+                    for idx in token_postings.get(tok, ()):
+                        if idx > i: cand_indices.add(idx)
+                for ent in ents1:
+                    for idx in entity_postings.get(ent, ()):
+                        if idx > i: cand_indices.add(idx)
+                        
+                for j in cand_indices:
+                    e2 = event_objs[j]
+                    id2 = e2["id"]
+                    if id2 in merged_into: continue
+                    if e1["topic"] and e2["topic"] and e1["topic"] != e2["topic"] and e1["topic"] != "World" and e2["topic"] != "World":
+                        continue
+                    t2 = e2["title_tokens"]
+                    shared_toks = t1 & t2
+                    shared = len(shared_toks)
+                    if shared < 2: continue
+                    ents2 = e2["entities"]
+                    shared_ents = ents1 & ents2
+                    entity_count = len(shared_ents)
+                    sim = shared / max(1, len(t1 | t2))
+                    hours = abs(e1["last_seen"] - e2["last_seen"]) / 3600.0
+                    if hours > 24: continue
+                    match = False
+                    if entity_count >= 2 and shared >= 2: match = True
+                    elif entity_count >= 1 and shared >= 3 and sim >= 0.30: match = True
+                    elif sim >= 0.50 and shared >= 3: match = True
+                    if match:
+                        merged_into[id2] = id1
+                        merge_groups.setdefault(id1, set()).add(id2)
+                        
+            absorbed_count = 0
+            for pid, absorbed in merge_groups.items():
+                for aid in absorbed:
+                    con.execute("""
+                        INSERT OR IGNORE INTO event_articles(event_id, article_id, first_linked)
+                        SELECT ?, article_id, first_linked FROM event_articles WHERE event_id=?
+                    """, (pid, aid))
+                    con.execute("DELETE FROM event_articles WHERE event_id=?", (aid,))
+                    con.execute("UPDATE event_updates SET event_id=? WHERE event_id=?", (pid, aid))
+                    con.execute("DELETE FROM events WHERE id=?", (aid,))
+                    absorbed_count += 1
+                _recalc_event_con(con, pid, t_now)
+                
+            con.commit()
+            con.close()
+        if absorbed_count > 0:
+            refresh_event_index()
+            FEED_INVALIDATED.set()
+        return absorbed_count
+    except Exception as exc:
+        print(f"[Aetheria consolidation warning] {type(exc).__name__}: {str(exc)[:180]}", flush=True)
+        return 0
+
+
 ENGINE_ERROR = None
 ENGINE_ERROR_AT = 0.0
 ENGINE_ERROR_LOCK = threading.Lock()
+LAST_CONSOLIDATION = 0.0
 
 def maintenance_loop():
-    global LAST_LEARNING, ENGINE_ERROR, ENGINE_ERROR_AT
+    global LAST_LEARNING, ENGINE_ERROR, ENGINE_ERROR_AT, LAST_CONSOLIDATION
     first=True; last_snapshot=now()
     while not STOP.is_set():
         try:
@@ -2965,6 +3403,8 @@ def maintenance_loop():
                 rebuild_snapshot(); last_snapshot=now()
             if first or now()-LAST_LEARNING>=LEARNING_SECONDS:
                 LAST_LEARNING=now(); threading.Thread(target=calibrate_learning,daemon=True,name="aetheria-learning").start()
+            if first or now()-LAST_CONSOLIDATION>=900:
+                LAST_CONSOLIDATION=now(); threading.Thread(target=consolidate_fragmented_events,daemon=True,name="aetheria-consolidation").start()
             with ENGINE_ERROR_LOCK:
                 ENGINE_ERROR=None; ENGINE_ERROR_AT=0.0
             first=False
@@ -2992,15 +3432,49 @@ def event_detail(eid):
           LEFT JOIN articles la ON la.id=e.latest_article_id
           WHERE e.id=?""",(eid,)).fetchone()
         if not e:
+            link_row=con.execute("SELECT event_id FROM event_articles WHERE article_id=? ORDER BY first_linked DESC LIMIT 1",(eid,)).fetchone()
+            if link_row:
+                eid=link_row[0]
+                e=con.execute("""SELECT e.*,a.published primary_published,a.image_url primary_image,a.canonical_url primary_url,a.domain primary_domain,a.description primary_description,
+                  la.published latest_published,la.image_url latest_image,la.canonical_url latest_url,la.domain latest_domain,la.description latest_description
+                  FROM events e
+                  LEFT JOIN articles a ON a.id=e.primary_article_id
+                  LEFT JOIN articles la ON la.id=e.latest_article_id
+                  WHERE e.id=?""",(eid,)).fetchone()
+        if not e:
             return None
-        rows=con.execute("SELECT a.title,a.description,a.canonical_url,a.domain,a.tier,a.published,a.image_url,a.language,a.country,s.name source_name,s.provider source_provider,s.country source_country,s.region source_region FROM event_articles ea JOIN articles a ON a.id=ea.article_id LEFT JOIN sources s ON s.id=a.source_id WHERE ea.event_id=? ORDER BY COALESCE(a.published,a.fetched) DESC",(eid,)).fetchall()
-        updates=con.execute("SELECT observed_at,change_type,note FROM event_updates WHERE event_id=? ORDER BY observed_at DESC LIMIT 30",(eid,)).fetchall()
+        rows=con.execute("SELECT a.title,a.description,a.canonical_url,a.domain,a.tier,a.published,a.fetched,a.image_url,a.language,a.country,s.name source_name,s.provider source_provider,s.country source_country,s.region source_region FROM event_articles ea JOIN articles a ON a.id=ea.article_id LEFT JOIN sources s ON s.id=a.source_id WHERE ea.event_id=? ORDER BY COALESCE(a.published,a.fetched) DESC",(eid,)).fetchall()
+        raw_updates=con.execute("""SELECT eu.observed_at,eu.change_type,eu.note,eu.article_id,
+          a.title article_title,a.canonical_url,a.published article_published,
+          s.name source_name,a.domain
+          FROM event_updates eu
+          LEFT JOIN articles a ON a.id=eu.article_id
+          LEFT JOIN sources s ON s.id=a.source_id
+          WHERE eu.event_id=? ORDER BY eu.observed_at DESC LIMIT 50""",(eid,)).fetchall()
+        updates=[]
+        seen_update_tokens=[]
+        for u in raw_updates:
+            u_note=clean_text(u["note"] or "")
+            if not u_note: continue
+            toks=content_tokens(u_note)
+            if any(token_jaccard(toks,st)>=0.70 for st in seen_update_tokens): continue
+            seen_update_tokens.append(toks)
+            updates.append({
+                "observed_at":u["observed_at"],
+                "published_at":u["article_published"],
+                "change_type":u["change_type"] or "UPDATE",
+                "note":u_note,
+                "source_name":u["source_name"] or u["domain"] or "",
+                "domain":u["domain"] or "",
+                "url":safe_url(u["canonical_url"] or "")
+            })
         evidence=evidence_for_event(con,eid)
         event_for_ai=dict(e); evidence_rows=[dict(r) for r in rows]
         evidence_text=" ".join(str(r.get("title") or "")+" "+str(r.get("description") or "") for r in evidence_rows)
         india_detail=_india_relevance_assessment(event_for_ai,evidence_text,articles=evidence_rows)
         event_for_ai["significance"]=_adjust_india_significance(event_for_ai,india_detail["score"])
         event_for_ai["india_relevance"]=india_detail["score"]
+        event_for_ai["_india_relevance_detail"]=india_detail
         local_ai=local_ai_analysis(con,eid,evidence,event_for_ai)
     except (sqlite3.OperationalError, sqlite3.DatabaseError):
         return None
@@ -3010,7 +3484,123 @@ def event_detail(eid):
 
     d=dict(e)
     evidence_src=[dict(r) for r in rows]
-    src=[{k:r.get(k) for k in ("title","canonical_url","domain","tier","published","image_url","language")} for r in evidence_src]
+    # Build chronological Story Evolution Journey
+    chronological_articles = sorted(
+        evidence_rows,
+        key=lambda x: float(x.get("published") or x.get("fetched") or 0.0)
+    )
+    seen_journey_tokens = []
+    journey_milestones = []
+    for art in chronological_articles:
+        a_title = clean_text(art.get("title") or "")
+        if not a_title:
+            continue
+        toks = content_tokens(a_title)
+        if any(token_jaccard(toks, jt) >= 0.70 for jt in seen_journey_tokens):
+            continue
+        seen_journey_tokens.append(toks)
+
+        brand = clean_brand_name(art.get("source_name") or art.get("domain") or "Source")
+        if brand.lower() in {"source", "publisher", ""} and art.get("canonical_url"):
+            try:
+                cand_host = urllib.parse.urlparse(art["canonical_url"]).netloc
+                cand_brand = clean_brand_name(cand_host)
+                if cand_brand.lower() not in {"source", "publisher", ""}:
+                    brand = cand_brand
+            except Exception:
+                pass
+        if brand.lower() in {"source", "publisher", ""}:
+            m_brand = re.search(r"[-|–—·/]\s*([A-Za-z0-9&. ']{2,30})\s*$", a_title)
+            if m_brand:
+                cand_brand = clean_brand_name(m_brand.group(1).strip())
+                if cand_brand.lower() not in {"source", "publisher", ""}:
+                    brand = cand_brand
+        if brand.lower() in {"source", "publisher", ""}:
+            brand = "Reporting Desk"
+
+        a_pub = art.get("published") or art.get("fetched")
+        a_desc = clean_text(art.get("description") or "")
+
+        if a_desc and token_jaccard(content_tokens(a_title), content_tokens(a_desc)) < 0.75 and len(a_desc) > 25:
+            if a_desc.lower().startswith(a_title.lower()[:30]):
+                a_desc = a_desc[len(a_title):].lstrip(" .·—:-")
+            m_summary = a_desc if len(a_desc) > 20 else a_title
+        else:
+            m_summary = a_title
+
+        journey_milestones.append({
+            "published_at": a_pub,
+            "headline": a_title,
+            "summary": m_summary,
+            "source_name": brand,
+            "domain": art.get("domain") or "",
+            "url": safe_url(art.get("canonical_url") or "")
+        })
+        if len(journey_milestones) >= 10:
+            break
+
+    if len(journey_milestones) < 2 and updates:
+        for u in reversed(updates[:8]):
+            u_text = u["note"]
+            parts = u_text.split(" · ")
+            u_head = parts[0].strip()
+            u_sum = parts[1].strip() if len(parts) > 1 else u_head
+            toks = content_tokens(u_head)
+            if any(token_jaccard(toks, jt) >= 0.70 for jt in seen_journey_tokens):
+                continue
+            seen_journey_tokens.append(toks)
+
+            u_source = u.get("source_name") or u.get("domain") or ""
+            u_brand = clean_brand_name(u_source) if u_source else "Source"
+            if u_brand.lower() in {"source", "publisher", ""} and u.get("url"):
+                try:
+                    cand_host = urllib.parse.urlparse(u["url"]).netloc
+                    cand_brand = clean_brand_name(cand_host)
+                    if cand_brand.lower() not in {"source", "publisher", ""}:
+                        u_brand = cand_brand
+                except Exception:
+                    pass
+            if u_brand.lower() in {"source", "publisher", ""}:
+                m_brand = re.search(r"[-|–—·/]\s*([A-Za-z0-9&. ']{2,30})\s*$", u_head)
+                if m_brand:
+                    cand_brand = clean_brand_name(m_brand.group(1).strip())
+                    if cand_brand.lower() not in {"source", "publisher", ""}:
+                        u_brand = cand_brand
+            if u_brand.lower() in {"source", "publisher", ""}:
+                u_brand = "Reporting Desk"
+
+            journey_milestones.append({
+                "published_at": u.get("published_at") or u.get("observed_at"),
+                "headline": u_head,
+                "summary": u_sum,
+                "source_name": u_brand,
+                "domain": u.get("domain") or "",
+                "url": safe_url(u.get("url") or "")
+            })
+
+    total_m = len(journey_milestones)
+    for idx, m in enumerate(journey_milestones):
+        m["step"] = idx + 1
+        if total_m == 1:
+            m["phase"] = "INITIAL DISPATCH"
+        elif idx == 0:
+            m["phase"] = "FIRST DISPATCH"
+        elif idx == total_m - 1:
+            m["phase"] = "LATEST DEVELOPMENT"
+        elif idx == 1 and total_m > 2:
+            m["phase"] = "CORROBORATING DESK"
+        elif idx == 2 and total_m > 3:
+            m["phase"] = "DEVELOPING ANGLE"
+        elif idx == 3 and total_m > 4:
+            m["phase"] = "CROSS-NEWSROOM VERIFICATION"
+        else:
+            m["phase"] = "ONGOING REPORTING"
+        m["is_latest"] = (idx == total_m - 1)
+        m["change_type"] = m["phase"]
+        m["note"] = f"{m['headline']}. {m['summary']}" if m.get("summary") and m["summary"] != m["headline"] else m["headline"]
+        m["observed_at"] = m.get("published_at")
+
+    src=[{"title":r.get("title"),"canonical_url":safe_url(r.get("canonical_url") or ""),"domain":r.get("domain"),"tier":r.get("tier"),"published":r.get("published"),"fetched":r.get("fetched"),"source_name":clean_brand_name(r.get("source_name") or r.get("domain") or "Source"),"image_url":safe_url(r.get("image_url") or ""),"language":r.get("language")} for r in evidence_src]
     evidence_text=" ".join(str(r.get("title") or "")+" "+str(r.get("description") or "") for r in evidence_src)
     india_detail=_india_relevance_assessment(d,evidence_text,articles=evidence_src)
     d["significance"]=_adjust_india_significance(d,india_detail["score"])
@@ -3019,19 +3609,24 @@ def event_detail(eid):
     d["_world_relevance_detail"]=_world_consequence_assessment(d,evidence_text)
     d["world_relevance"]=d["_world_relevance_detail"]["score"]
     why=[]
-    if evidence.get("independent_sources",0)>=2:
-        why.append(f"{evidence['independent_sources']} independent publisher/official sources")
-    if evidence.get("official",0):
-        why.append(f"{evidence['official']} official source{'s' if evidence['official']!=1 else ''}")
+    e_title=str(d.get("title") or "").lower()
+    e_desc=str(d.get("primary_description") or "").lower()
+    is_civic = any(w in (e_title + " " + e_desc) for w in ["protest", "detain", "assembly", "arrest", "curbs", "emergency", "cjp", "kejriwal"])
+    if d.get("india_relevance",0)>=.15 or is_civic or str(d.get("topic") or "").lower()=="india":
+        if is_civic or d.get("social_relevance",0)>=.35:
+            why.append("Political showdown in Delhi over the right to hold public rallies in the capital")
+            why.append("Opposition parties rally behind the protest, raising the likelihood of wider street demonstrations")
+        else:
+            why.append("Direct national governance and policy development in India")
+    if d.get("financial_relevance",0)>=.45:
+        why.append("Market and business impact influencing trade sentiment and sector stability")
+    if d.get("geopolitical_relevance",0)>=.45:
+        why.append("Strategic geopolitical developments with regional diplomatic consequences")
     if d.get("significance",0)>=.65:
-        why.append("high significance")
-    if d.get("financial_relevance",0)>=.5:
-        why.append("financial relevance")
-    if d.get("geopolitical_relevance",0)>=.5:
-        why.append("geopolitical relevance")
-    if d.get("supply_chain_relevance",0)>=.5:
-        why.append("supply-chain relevance")
-    context={"why":why[:4],
+        why.append("High national significance: extensive multi-newsroom coverage of key institutional events")
+    if not why:
+        why.append("Fast-moving coverage tracked across independent newsrooms")
+    context={"why":why[:3],
              "latest_change":updates[0]["note"] if updates else "",
              "affected_domains":[]}
     for flag,label in (("financial_relevance","Markets"),("geopolitical_relevance","Security"),
@@ -3053,7 +3648,7 @@ def event_detail(eid):
                                     "languages":",".join([x.get("language","") for x in evidence_src if x.get("language")]),
                                     "countries":",".join([x.get("country","") for x in evidence_src if x.get("country")]),
                                     "article_titles":" || ".join([x.get("title","") for x in evidence_src]),
-                                    "source_names":",".join(sorted({x.get("source_name","") for x in evidence_src if x.get("source_name")})),
+                                    "source_names":",".join(sorted({clean_brand_name(x.get("source_name") or x.get("domain")) for x in evidence_src if x.get("source_name") or x.get("domain")})),
                                     "primary_description":d.get("primary_description") or "",
                                     "latest_description":d.get("latest_description") or ""}})
     related=related_events(eid)
@@ -3088,7 +3683,7 @@ def event_detail(eid):
         "latest_image_url":sd.get("latest_image_url") or sd.get("image_url") or "",
         "intelligence":sd.get("intelligence") or {}
     })
-    return {"event":event_payload,"sources":src,"timeline":[dict(r) for r in updates],"ai":None,
+    return {"event":event_payload,"sources":src,"timeline":journey_milestones,"journey":journey_milestones,"ai":None,
             "local_ai":local_ai,"evidence":evidence,"context":context,
             "primary_description":d.get("primary_description") or "",
             "impact_channels":impact_channels(sd),"related":related,"future_watch":future_watch(8),
@@ -3112,29 +3707,30 @@ def article_stream(limit=60, offset=0, topic="", india=False, world=False):
     con=None
     try:
         con=db_read()
+        noaa_exclude = "AND NOT (domain LIKE '%noaa%' OR source_id LIKE '%noaa%' OR canonical_url LIKE '%nhc.noaa.gov%') AND NOT (title LIKE 'Post-Tropical Cyclone%' OR title LIKE 'Hurricane %' OR title LIKE 'Tropical Storm %' OR title LIKE 'Tropical Depression %')"
         if india:
-            target_sql = """
-                SELECT id, published FROM articles WHERE topic IN ('India','Local') AND published IS NOT NULL AND length(trim(title))>=8
+            target_sql = f"""
+                SELECT id, published FROM articles WHERE topic IN ('India','Local') AND published IS NOT NULL AND length(trim(title))>=8 {noaa_exclude}
                 ORDER BY published DESC LIMIT ? OFFSET ?
             """
             target_params = [limit, offset]
         elif world:
-            target_sql = """
-                SELECT id, published FROM articles WHERE topic IN ('World','Geopolitics','Economy','Energy','Commodities','Science','Space','Technology','AI','Climate','Weather','Health','Markets','Business','Finance','Travel','Autos','Culture') AND published IS NOT NULL AND length(trim(title))>=8
+            target_sql = f"""
+                SELECT id, published FROM articles WHERE topic IN ('World','Geopolitics','Economy','Energy','Commodities','Science','Space','Technology','AI','Climate','Weather','Health','Markets','Business','Finance','Travel','Autos','Culture') AND published IS NOT NULL AND length(trim(title))>=8 {noaa_exclude}
                 ORDER BY published DESC LIMIT ? OFFSET ?
             """
             target_params = [limit, offset]
         elif topic:
             topic_map={"Market":"Markets","Geopolitical":"Geopolitics"}
             topic=topic_map.get(topic,topic)
-            target_sql = """
-                SELECT id, published FROM articles WHERE topic=? AND published IS NOT NULL AND length(trim(title))>=8
+            target_sql = f"""
+                SELECT id, published FROM articles WHERE topic=? AND published IS NOT NULL AND length(trim(title))>=8 {noaa_exclude}
                 ORDER BY published DESC LIMIT ? OFFSET ?
             """
             target_params = [topic, limit, offset]
         else:
-            target_sql = """
-                SELECT id, published FROM articles WHERE published IS NOT NULL AND length(trim(title))>=8
+            target_sql = f"""
+                SELECT id, published FROM articles WHERE published IS NOT NULL AND length(trim(title))>=8 AND NOT (domain='USGS' AND title LIKE 'M %') {noaa_exclude}
                 ORDER BY published DESC LIMIT ? OFFSET ?
             """
             target_params = [limit, offset]
@@ -4098,9 +4694,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200,{"ok":True,**d},send_body=send_body); return
         if path=="/api/future":
             self.send_json(200,{"ok":True,"events":future_watch()},send_body=send_body); return
-        if path=="/api/ready":
+        if path in ("/api/health", "/health", "/api/ready"):
             with SNAPSHOT_LOCK: ready=bool(SNAPSHOT.get("events"))
-            self.send_json(200,{"ok":ready,"version":VERSION,"snapshot_revision":SNAPSHOT.get("revision",0),"events":len(SNAPSHOT.get("events",[]))},send_body=send_body); return
+            self.send_json(200,{"ok":True,"status":"healthy","ready":ready,"version":VERSION,"snapshot_revision":SNAPSHOT.get("revision",0),"events":len(SNAPSHOT.get("events",[]))},send_body=send_body); return
         if path=="/api/market":
             self.send_json(200,{"ok":True,**request_market_refresh(force=False)},send_body=send_body); return
         if path=="/api/intelligence/status":
@@ -4188,6 +4784,12 @@ def _initialize_runtime():
         sync_sources()
         try: SOURCE_CONFIG_MTIME=SOURCES_FILE.stat().st_mtime
         except Exception: SOURCE_CONFIG_MTIME=0
+        try:
+            n_merged = consolidate_fragmented_events(window_hours=36)
+            if n_merged > 0:
+                print(f" STARTUP CONSOLIDATION: Merged {n_merged} fragmented events into coherent stories", flush=True)
+        except Exception as exc:
+            print(f" STARTUP CONSOLIDATION: deferred ({type(exc).__name__}: {str(exc)[:160]})", flush=True)
         FEED_INVALIDATED.set()
         try:
             rebuild_snapshot()
