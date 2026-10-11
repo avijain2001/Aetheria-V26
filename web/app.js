@@ -934,12 +934,6 @@
     const controlsMarkup = `
       <div class="visual-tag-top">${esc((s.topic || 'GLOBAL').toUpperCase())} · DEVELOPING</div>
       <div class="story-stack-controls" aria-label="News stack controls">
-        <div class="stack-meta-left">
-          <span class="story-stack-count" aria-live="polite">${String(i + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}</span>
-          <div class="stack-progress-bar" aria-hidden="true">
-            ${items.map((_, idx) => `<span class="stack-progress-segment ${idx === i ? 'active' : ''}"></span>`).join('')}
-          </div>
-        </div>
         <div class="stack-nav-btns">
           <button type="button" class="stack-nav-btn" data-home-prev aria-label="Previous story" title="Previous story">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -952,6 +946,12 @@
           <button type="button" class="stack-nav-btn" data-home-next aria-label="Next story" title="Next story">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
+        </div>
+        <div class="stack-progress-row">
+          <span class="story-stack-count" aria-live="polite">${String(i + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}</span>
+          <div class="stack-progress-bar" aria-hidden="true">
+            ${items.map((_, idx) => `<span class="stack-progress-segment ${idx === i ? 'active' : ''}"></span>`).join('')}
+          </div>
         </div>
       </div>
     </div>`;
@@ -1781,7 +1781,7 @@
     const now = new Date();
     const dateStr = now.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
     const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-    el.innerHTML = `<span class="live-clock-time">${esc(timeStr)}</span><span class="live-clock-date">${esc(dateStr)}</span>`;
+    el.innerHTML = `<span class="live-clock-time" style="display:block;font-size:9.5px;font-weight:600;line-height:1.15;color:var(--ink-muted);opacity:0.7;letter-spacing:0.02em;white-space:nowrap;text-align:right;">${esc(timeStr)}</span><span class="live-clock-date" style="display:block;font-size:7.5px;font-weight:500;line-height:1.15;color:var(--ink-muted);opacity:0.45;letter-spacing:0.04em;text-transform:uppercase;white-space:nowrap;text-align:right;">${esc(dateStr)}</span>`;
   }
 
   function init() {

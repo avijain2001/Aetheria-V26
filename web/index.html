@@ -653,12 +653,12 @@ img { max-width: 100%; display: block; }
   display: grid; place-items: center;
   background: linear-gradient(135deg, var(--accent), var(--accent-soft));
   border: 1px solid var(--accent-glow);
-  border-radius: 10px;
+  border-radius: 50%;
   color: var(--bg);
-  font: 700 22px 'Newsreader', serif;
   box-shadow: 0 4px 12px var(--accent-soft);
+  overflow: hidden;
 }
-.brand-mark svg { width: 30px; height: 30px; display:block; color:var(--bg); }
+.brand-mark svg { width: 28px; height: 28px; display:block; color:var(--bg); }
 .brand-mark svg path:first-child { color: var(--bg); }
 body[data-theme="white"] .brand-mark svg,
 body[data-mode="light"] .brand-mark svg { color: var(--bg); }
@@ -3811,41 +3811,48 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 }
 .hero-feature .story-stack-controls {
   position: absolute !important;
-  inset: auto 20px 18px 20px !important;
+  inset: auto auto 14px 50% !important;
+  transform: translateX(-50%) !important;
   z-index: 10 !important;
   display: flex !important;
-  flex-direction: row !important;
+  flex-direction: column !important;
   align-items: center !important;
-  justify-content: space-between !important;
-  gap: 12px !important;
+  justify-content: center !important;
+  gap: 7px !important;
   pointer-events: auto !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
   width: auto !important;
-}
-.hero-feature .stack-meta-left {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  min-width: 0 !important;
-  flex: 1 1 auto !important;
-}
-.hero-feature .story-stack-count {
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  color: rgba(255, 255, 255, 0.85) !important;
-  letter-spacing: 0.08em !important;
-  font-family: var(--font-mono, monospace) !important;
-  font-variant-numeric: tabular-nums !important;
-  margin: 0 !important;
-  flex-shrink: 0 !important;
+  max-width: 90% !important;
 }
 .hero-feature .stack-nav-btns {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  justify-content: center !important;
+  gap: 8px !important;
   flex-shrink: 0 !important;
+}
+.hero-feature .stack-progress-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+.hero-feature .story-stack-count {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  letter-spacing: 0.06em !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-variant-numeric: tabular-nums !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+.hero-feature .no-image .story-stack-count {
+  color: var(--ink-muted, #707070) !important;
 }
 .hero-feature .stack-nav-btn {
   width: 32px !important;
@@ -3869,6 +3876,11 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   text-transform: none !important;
   flex: none !important;
 }
+.hero-feature .no-image .stack-nav-btn {
+  background: rgba(90, 98, 102, 0.85) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #ffffff !important;
+}
 .hero-feature .stack-nav-btn:hover {
   border-color: var(--cyan, #58e3aa) !important;
   color: var(--cyan, #58e3aa) !important;
@@ -3882,28 +3894,37 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 .hero-feature .stack-progress-bar {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
-  width: 100% !important;
-  max-width: 200px !important;
+  gap: 4px !important;
+  width: 90px !important;
+  max-width: 120px !important;
   height: 4px !important;
+  flex-shrink: 0 !important;
 }
 .hero-feature .stack-progress-segment {
   flex: 1 !important;
   height: 2px !important;
   border-radius: 2px !important;
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
   transition: all 0.3s ease !important;
+}
+.hero-feature .no-image .stack-progress-segment {
+  background: rgba(0, 0, 0, 0.15) !important;
 }
 .hero-feature .stack-progress-segment.active {
   height: 2.5px !important;
   background: var(--cyan, #58e3aa) !important;
   box-shadow: 0 0 8px rgba(88, 227, 170, 0.7) !important;
 }
+.hero-feature .no-image .stack-progress-segment.active {
+  background: var(--accent, #111111) !important;
+  box-shadow: 0 0 6px var(--accent-glow, rgba(0,0,0,0.3)) !important;
+}
 @media (max-width: 720px) {
   .hero-feature .story-stack-controls {
     position: absolute !important;
-    inset: auto 14px 14px 14px !important;
-    gap: 8px !important;
+    inset: auto auto 12px 50% !important;
+    transform: translateX(-50%) !important;
+    gap: 6px !important;
     width: auto !important;
   }
   .hero-feature .visual-tag-top {
@@ -3911,7 +3932,8 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
     left: 16px !important;
   }
   .hero-feature .stack-progress-bar {
-    max-width: 160px !important;
+    width: 80px !important;
+    max-width: 100px !important;
   }
   .hero-feature .hero-action-row {
     margin-top: auto !important;
@@ -4082,6 +4104,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   align-items: flex-end !important;
   justify-content: center !important;
   line-height: 1.15 !important;
+  gap: 1px !important;
   flex-shrink: 0 !important;
   margin-right: 6px !important;
   user-select: none !important;
@@ -4089,24 +4112,31 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
+  opacity: 0.75 !important;
 }
 .live-clock-time {
-  font-size: 10.5px !important;
+  display: block !important;
+  font-size: 9.5px !important;
   font-weight: 600 !important;
-  color: var(--ink) !important;
-  opacity: 0.6 !important;
+  color: var(--ink-muted) !important;
+  opacity: 0.75 !important;
   font-variant-numeric: tabular-nums !important;
   letter-spacing: 0.02em !important;
   white-space: nowrap !important;
+  line-height: 1.15 !important;
+  text-align: right !important;
 }
 .live-clock-date {
-  font-size: 8.5px !important;
+  display: block !important;
+  font-size: 7.5px !important;
   font-weight: 500 !important;
   color: var(--ink-muted) !important;
-  opacity: 0.45 !important;
+  opacity: 0.5 !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
   white-space: nowrap !important;
+  line-height: 1.15 !important;
+  text-align: right !important;
 }
 
 @media (max-width: 900px) {
@@ -4195,13 +4225,16 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   <header class="topbar">
     <div class="brand" id="aetheriaBrand" role="button" tabindex="0" aria-label="Go to Aetheria Home">
       <div class="brand-mark" aria-label="Aetheria mark">
-  <svg viewBox="0 0 64 64" role="img" aria-label="Aetheria">
-    <path d="M12 47 29 10c2-4 7-4 9 0l14 38" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
-    <path d="M20 40 34 21l16 27" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" opacity=".78"/>
-    <path d="M8 49c14-8 31-11 49-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".55"/>
-    <circle cx="34" cy="21" r="3.2" fill="var(--bg)"/>
-  </svg>
-</div>
+        <svg viewBox="0 0 64 64" role="img" aria-label="Aetheria">
+          <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.9"/>
+          <circle cx="32" cy="32" r="18" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.5"/>
+          <path d="M 32 15 Q 32 32 15 32 Q 32 32 32 49 Q 32 32 49 32 Q 32 32 32 15 Z" fill="currentColor"/>
+          <circle cx="21" cy="21" r="1.5" fill="currentColor" opacity="0.65"/>
+          <circle cx="43" cy="21" r="1.5" fill="currentColor" opacity="0.65"/>
+          <circle cx="21" cy="43" r="1.5" fill="currentColor" opacity="0.65"/>
+          <circle cx="43" cy="43" r="1.5" fill="currentColor" opacity="0.65"/>
+        </svg>
+      </div>
       <div class="brand-text">
         <div class="brand-name">AETHERIA</div>
         <div class="brand-sub">Know what matters. before you go looking.</div>
@@ -4411,6 +4444,6 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   </div>
 </div>
 
-<script src="/app.js" defer></script>
+<script src="/app.js?v=26.4" defer></script>
 </body>
 </html>

@@ -2682,3 +2682,125 @@ body[data-theme="newspaper"][data-mode="light"] .journey-milestone.latest .journ
   .story-modal-card, .read-impact-meter-fill, .read-source-card, .read-source-btn, .read-related-action, .journey-card, .journey-verify-btn { transition: none !important; }
   .journey-milestone.latest .journey-node, .journey-pulse-ring { animation: none !important; }
 }
+
+/* Subtle Live System Clock in Topbar (Stacked 2-line Time & Date) */
+.topbar-live-clock {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  line-height: 1.15 !important;
+  gap: 1px !important;
+  flex-shrink: 0 !important;
+  margin-right: 6px !important;
+  user-select: none !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  opacity: 0.75 !important;
+}
+.live-clock-time {
+  display: block !important;
+  font-size: 9.5px !important;
+  font-weight: 600 !important;
+  color: var(--ink-muted) !important;
+  opacity: 0.75 !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: 0.02em !important;
+  white-space: nowrap !important;
+  line-height: 1.15 !important;
+  text-align: right !important;
+}
+.live-clock-date {
+  display: block !important;
+  font-size: 7.5px !important;
+  font-weight: 500 !important;
+  color: var(--ink-muted) !important;
+  opacity: 0.5 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  line-height: 1.15 !important;
+  text-align: right !important;
+}
+@media (max-width: 900px) {
+  .topbar-live-clock {
+    display: none !important;
+  }
+}
+
+/* Centered Stack Controls: Nav Buttons Above, Progress Row with Count Below */
+.hero-feature .story-stack-controls {
+  position: absolute !important;
+  inset: auto auto 14px 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 10 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  pointer-events: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  width: auto !important;
+  max-width: 90% !important;
+}
+.hero-feature .stack-nav-btns {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+.hero-feature .stack-progress-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+.hero-feature .story-stack-count {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  letter-spacing: 0.06em !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-variant-numeric: tabular-nums !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+.hero-feature .stack-progress-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  width: 90px !important;
+  max-width: 120px !important;
+  height: 4px !important;
+  flex-shrink: 0 !important;
+}
+.hero-feature .stack-progress-segment {
+  flex: 1 !important;
+  height: 2px !important;
+  border-radius: 2px !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  transition: all 0.3s ease !important;
+}
+.hero-feature .stack-progress-segment.active {
+  height: 2.5px !important;
+  background: var(--cyan, #58e3aa) !important;
+  box-shadow: 0 0 8px rgba(88, 227, 170, 0.7) !important;
+}
+@media (max-width: 720px) {
+  .hero-feature .story-stack-controls {
+    position: absolute !important;
+    inset: auto auto 12px 50% !important;
+    transform: translateX(-50%) !important;
+    gap: 6px !important;
+    width: auto !important;
+  }
+}
+
