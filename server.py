@@ -4747,11 +4747,6 @@ class Handler(BaseHTTPRequestHandler):
             eid=path.rsplit("/",1)[-1]; d=event_detail(eid)
             if not d: self.send_json(404,{"ok":False},send_body=send_body); return
             self.send_json(200,{"ok":True,**d},send_body=send_body); return
-        if path in ("/favicon.ico", "/favicon.svg"):
-            fav_svg = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#73e9fb" stroke-width="4"/><path d="M 32 16 Q 32 32 16 32 Q 32 32 32 48 Q 32 32 48 32 Q 32 32 32 16 Z" fill="#73e9fb"/></svg>'
-            self.send_response(200); self.send_header("Content-Type", "image/svg+xml"); self.send_header("Cache-Control", "no-cache, no-store, must-revalidate"); self.send_header("Content-Length", str(len(fav_svg))); self.end_headers()
-            if send_body: self.wfile.write(fav_svg)
-            return
         if path in ("/disclaimer", "/disclaimer.html"):
             target = WEB_DIR / "disclaimer.html"
         else:
@@ -4759,10 +4754,11 @@ class Handler(BaseHTTPRequestHandler):
             target = (WEB_DIR / safe).resolve()
             if not str(target).startswith(str(WEB_DIR.resolve())) or not target.is_file():
                 target = WEB_DIR / "index.html"
-        ct = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "application/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml", ".ico": "image/x-icon"}.get(target.suffix, "application/octet-stream")
+        ct = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "application/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png"}.get(target.suffix, "application/octet-stream")
         data=target.read_bytes(); self.send_response(200); self.send_header("Content-Type",ct); self.send_header("Cache-Control","no-cache, no-store, must-revalidate"); self.send_header("Pragma","no-cache"); self.send_header("Expires","0"); self.send_header("Content-Length",str(len(data))); self.end_headers()
         if send_body:
             self.wfile.write(data)
+        return
     def log_message(self,fmt,*args): print(f"[Aetheria] {self.address_string()} - {fmt%args}")
 
 

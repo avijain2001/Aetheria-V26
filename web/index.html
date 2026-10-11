@@ -7,8 +7,11 @@
 <meta name="description" content="Aetheria — an India-first living view of the world, continuously verified and understood.">
 <meta name="theme-color" content="#06120f">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='26' fill='none' stroke='%2373e9fb' stroke-width='4'/%3E%3Cpath d='M 32 16 Q 32 32 16 32 Q 32 32 32 48 Q 32 32 48 32 Q 32 32 32 16 Z' fill='%2373e9fb'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=26.7">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=26.7">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=26.7">
+<link rel="shortcut icon" href="/favicon.ico?v=26.7">
+<link rel="apple-touch-icon" href="/favicon.png?v=26.7">
 <title>Aetheria — News Intelligence</title>
 <script>
   (function() {
@@ -2024,7 +2027,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   .latest-row time { font-size:12px; }
   .site-footer { padding-bottom:104px; text-align:center; }
 }
-@media (max-width:430px) {
+@media (max-width:480px) {
   .market { grid-template-columns:104px minmax(0,1fr); }
   .market-title { padding:0 10px; }
   .market-title b { font-size:9px; }
@@ -2611,12 +2614,12 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   .changed-meta .news-card-actions{gap:0}
   .changed-meta .news-card-action,.changed-meta .follow-remove{width:44px;height:44px;min-width:44px;min-height:44px;margin:0}
   .developing{height:auto;min-height:0}
-  .dev-row{grid-template-columns:44px minmax(0,1fr) 92px;gap:7px;padding:8px 0;min-height:70px;height:auto}
+  .dev-row{grid-template-columns:58px minmax(0,1fr);gap:12px;padding:8px 0;min-height:auto;height:auto}
   .dev-row .news-card-actions{gap:0}
   .dev-row .news-card-action{width:44px;height:44px;min-width:44px;min-height:44px}
   .read-card-actions .news-card-action{width:44px;height:44px;min-width:44px;min-height:44px}
 }
-@media(max-width:430px){
+@media(max-width:480px){
   .latest-row,.latest-row:has(.latest-thumb),.latest-row:has(.latest-thumb-slot){grid-template-columns:48px 40px minmax(0,1fr) 132px;gap:6px;padding:10px 8px}
   .latest-thumb-slot{width:40px;height:38px}
   .latest-main h3{font-size:15px}
@@ -3074,11 +3077,10 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   .hero-feature .hero-action-row{flex-wrap:wrap}
   .hero-feature .story-stack-controls{flex-wrap:wrap}
   .hero-feature .story-stack-controls button{flex:0 1 auto}
-  .developing{height:330px;min-height:330px}
-  .developing .dev-row{grid-template-columns:44px minmax(0,1fr) 88px;gap:4px;padding:3px 0}
-  .developing .dev-time{font-size:9px}
-  .developing .dev-title{font-size:11px}
-  .developing .news-card-action{width:40px;height:40px;min-width:40px;min-height:40px}
+  .developing{height:auto;min-height:auto}
+  .developing .dev-row{grid-template-columns:58px minmax(0,1fr);gap:12px;padding:8px 0}
+  .developing .dev-time{font-size:13px}
+  .developing .dev-title{font-size:13px}
   .lower>.info-card{height:260px;min-height:260px}
   .info-card>.impact-row{padding:0 7px;grid-template-columns:30px minmax(0,1fr) 82px;gap:5px}
   .info-card>.impact-row .impact-icon{width:28px;height:28px}
@@ -3445,9 +3447,9 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   }
   .developing .dev-row {
     display: grid !important;
-    grid-template-columns: 44px minmax(0, 1fr) auto !important;
-    gap: 10px !important;
-    align-items: center !important;
+    grid-template-columns: 58px minmax(0, 1fr) !important;
+    gap: 12px !important;
+    align-items: flex-start !important;
     padding: 9px 0 !important;
     border-bottom: 1px solid var(--line) !important;
     min-height: auto !important;
@@ -4169,9 +4171,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
     align-items: center !important;
     gap: 6px !important;
     flex: 0 0 auto !important;
-    max-width: 112px !important;
     min-width: 0 !important;
-    overflow: hidden !important;
   }
   .brand-mark {
     width: 28px !important;
@@ -4185,11 +4185,12 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   }
   .brand-text {
     min-width: 0 !important;
-    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
   .brand-name {
     font-size: 13px !important;
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.08em !important;
     white-space: nowrap !important;
     line-height: 1.1 !important;
   }
@@ -4207,6 +4208,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
     scrollbar-width: none !important;
     gap: 4px !important;
     padding: 0 2px !important;
+    margin: 0 4px !important;
     justify-content: flex-start !important;
     align-items: center !important;
     white-space: nowrap !important;
@@ -4528,6 +4530,6 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   </div>
 </div>
 
-<script src="/app.js?v=26.6" defer></script>
+<script src="/app.js?v=26.7" defer></script>
 </body>
 </html>
