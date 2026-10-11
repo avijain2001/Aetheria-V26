@@ -143,6 +143,10 @@
     return raw > 1 ? Math.round(raw) : Math.round(raw * 100);
   }
 
+  function aetheriaLogoSvg(size = 14) {
+    return `<svg class="aetheria-logo-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" aria-hidden="true" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="9.5" stroke-width="1.6"/><path d="M 12 6 Q 12 12 6 12 Q 12 12 12 18 Q 12 12 18 12 Q 12 12 12 6 Z" fill="currentColor" stroke="none"/></svg>`;
+  }
+
   function actionTools(item) {
     const itemId = String(item?.id || '');
     const isSchedule = Boolean(item?.start_ts && item?.kind);
@@ -153,7 +157,7 @@
     const followTitle = following ? 'Following this story (click to unfollow)' : 'Follow this story';
     return `<span class="news-card-actions" role="group" aria-label="Story actions">
       <span class="signature-action"><button type="button" class="news-card-action ${following ? 'following' : ''}" data-follow-event="${esc(eid)}" aria-label="${followTitle}" title="${followTitle}"><span class="news-card-action-icon">${following ? '✓' : '+'}</span></button><span class="news-card-action-label">${followLabel}</span></span>
-      ${isSchedule ? '' : `<span class="signature-action"><button type="button" class="news-card-action related" data-related-event="${esc(eid)}" aria-label="Aetheria intelligence" title="Aetheria intelligence"><span class="news-card-action-icon">◎</span></button><span class="news-card-action-label">Aetheria</span></span>`}
+      ${isSchedule ? '' : `<span class="signature-action"><button type="button" class="news-card-action related" data-related-event="${esc(eid)}" aria-label="Aetheria intelligence" title="Aetheria intelligence"><span class="news-card-action-icon">${aetheriaLogoSvg(13)}</span></button><span class="news-card-action-label">Aetheria</span></span>`}
     </span>`;
   }
 
@@ -988,9 +992,10 @@
 
   function eventDateParts(ts) {
     const value = Number(ts);
-    if (!Number.isFinite(value) || value <= 0) return { month: 'OCT', day: '—' };
+    const currentMonth = new Date().toLocaleDateString([], { month: 'short' }).toUpperCase();
+    if (!Number.isFinite(value) || value <= 0) return { month: currentMonth, day: '—' };
     const date = new Date(value * 1000);
-    if (Number.isNaN(date.getTime())) return { month: 'OCT', day: '—' };
+    if (Number.isNaN(date.getTime())) return { month: currentMonth, day: '—' };
     const month = date.toLocaleDateString([], { month: 'short' }).toUpperCase();
     const day = String(date.getDate()).padStart(2, '0');
     return { month, day };
@@ -1081,7 +1086,7 @@
       const known = String(change.what_was_known || '').trim();
       const changeContext = known && context ? `Previously: ${known} | New evidence: ${context}` : context;
       const keyboardAttrs = action ? `tabindex="0" role="group" aria-label="Open story: ${esc(x.title)}" aria-keyshortcuts="Enter"` : '';
-      return `<article class="changed-card" ${action} ${keyboardAttrs}><div class="changed-icon">${i === 0 ? '↗' : i === 1 ? '◎' : '→'}</div><div class="changed-label">${esc(changeLabel)}</div><h3 ${langAttr(x, x.title)}>${esc(x.title)}</h3>${changeContext ? `<p class="changed-context" ${langAttr(x, changeContext)}>${esc(changeContext)}</p>` : ''}<div class="changed-meta"><span class="changed-info">${esc(detail)}</span>${actionTools(x)}</div></article>`;
+      return `<article class="changed-card" ${action} ${keyboardAttrs}><div class="changed-icon">${i === 0 ? '↗' : i === 1 ? aetheriaLogoSvg(14) : '→'}</div><div class="changed-label">${esc(changeLabel)}</div><h3 ${langAttr(x, x.title)}>${esc(x.title)}</h3>${changeContext ? `<p class="changed-context" ${langAttr(x, changeContext)}>${esc(changeContext)}</p>` : ''}<div class="changed-meta"><span class="changed-info">${esc(detail)}</span>${actionTools(x)}</div></article>`;
     }).join('') : '<div class="empty-state">No likely real-world change is supported by current reporting.</div>';
 
     return `<section class="home"><section class="hero">${renderStack()}<aside class="hero-card developing"><div class="dev-head"><b>DEVELOPING</b><a data-route="Latest">View all →</a></div>${developingHTML(developing)}</aside></section><section class="lower">${lowerCard('INDIA DESK', `<div class="india-wrap">${indiaRows || '<div class="empty-state">No India-relevant active reports are available.</div>'}</div>`)}${lowerCard('IMPACT', impactRows)}${lowerCard('UPCOMING EVENTS', futureRows)}${lowerCard('AETHERIA READ', readRows || '<div class="empty-state">No current reading signal is available.</div>')}</section><section class="intelligence-section"><div class="section-heading"><div><span class="section-kicker">AETHERIA INTELLIGENCE</span><h2>What changed?</h2></div></div><div class="changed-grid">${changedRows}</div></section><section class="latest-section"><div class="section-heading"><div><span class="section-kicker">REAL-TIME STREAM</span><h2>Latest</h2></div><a data-route="Latest">Open full stream →</a></div><div class="latest-card">${latestRows}</div></section><section class="followup-section intelligence-section"><div class="section-heading"><div><span class="section-kicker">CONTINUING WATCH</span><h2>Follow-up</h2></div><a data-route="Follow-up">Open follow-up desk →</a></div>${renderFollowUpPreview()}</section></section>`;
