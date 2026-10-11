@@ -2804,3 +2804,154 @@ body[data-theme="newspaper"][data-mode="light"] .journey-milestone.latest .journ
   }
 }
 
+.developing .dev-row {
+  display: grid !important;
+  grid-template-columns: 58px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: flex-start !important;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+.developing .dev-time {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+.developing .dev-time span {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.02em !important;
+  font-variant-numeric: tabular-nums !important;
+}
+.developing .dev-time small {
+  display: block !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  color: var(--ink-muted) !important;
+  text-transform: uppercase !important;
+  line-height: 1.1 !important;
+  margin-top: 2px !important;
+}
+@media (max-width: 900px) {
+  .topbar {
+    padding: 0 10px !important;
+    gap: 6px !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    max-height: 64px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  .brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 0 0 auto !important;
+    max-width: 112px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  .brand-mark {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    flex: 0 0 28px !important;
+  }
+  .brand-name {
+    font-size: 13px !important;
+    letter-spacing: 0.1em !important;
+    white-space: nowrap !important;
+    line-height: 1.1 !important;
+  }
+  .brand-sub {
+    display: none !important;
+  }
+  .main-nav {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 4px !important;
+    padding: 0 2px !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+  }
+  .main-nav button {
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+    border-radius: 8px !important;
+    line-height: 1.2 !important;
+  }
+  .top-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
+    flex: 0 0 auto !important;
+  }
+  .action-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    font-size: 13px !important;
+    flex: 0 0 28px !important;
+  }
+  .user-name {
+    display: none !important;
+  }
+  .user-profile {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    flex: 0 0 26px !important;
+  }
+  .hero-feature {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    overflow: visible !important;
+  }
+  .hero-feature .feature-visual {
+    height: 220px !important;
+    min-height: 220px !important;
+    max-height: 220px !important;
+    width: 100% !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+  .hero-feature .story-card {
+    height: auto !important;
+    min-height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 18px 14px !important;
+    position: relative !important;
+    overflow: visible !important;
+  }
+}
+
+
