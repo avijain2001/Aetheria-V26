@@ -798,9 +798,7 @@
     const isUp = cls === 'up';
     const isDown = cls === 'down';
     let pts = (Array.isArray(points) && points.length >= 2) ? points.filter(Number.isFinite) : null;
-    if (!pts || pts.length < 2) {
-      pts = isUp ? [10, 11, 9, 13, 12, 16, 14, 19] : isDown ? [19, 17, 18, 14, 15, 12, 11, 8] : [12, 13, 12, 14, 13, 12, 13];
-    }
+    if (!pts || pts.length < 2) return '';
     const min = Math.min(...pts);
     const max = Math.max(...pts);
     const range = (max - min) || 1;
@@ -876,8 +874,9 @@
       const stateStr = String(x.market_state || '').toUpperCase();
       const isOpen = x.is_open === true || stateStr === 'REGULAR';
       const isClosed = x.is_open === false || (stateStr && stateStr !== 'REGULAR');
+      const hasSpark = Array.isArray(x.sparkline) && x.sparkline.length >= 2;
       const topBadge = isOpen
-        ? renderSparkline(x.sparkline, cls)
+        ? (hasSpark ? renderSparkline(x.sparkline, cls) : '<span class="market-status-tag live">LIVE</span>')
         : '<span class="market-status-tag closed">CLOSED</span>';
       return `<div class="market-item" data-route="Markets" tabindex="0" role="link" aria-label="${esc(x.label || x.symbol || 'Market')}: ${esc(value)} ${esc(direction)}${isClosed ? ' (Market Closed)' : ''}"><div class="market-row-top"><span class="market-name">${esc(x.label || x.symbol || x.group || 'MARKET')}</span>${topBadge}</div><div class="market-row-bottom"><span class="market-value">${esc(value)}</span><span class="market-change ${cls}" role="img" aria-label="${esc(direction)}${abs ? `, ${esc(abs)}` : ''}${ptxt ? `, ${esc(ptxt)}` : ''}">${change}</span></div></div>`;
     }).join('');
@@ -929,11 +928,37 @@
     const url = sourceUrl(s);
     const image = s.image_url ? `<img class="feature-image" src="${esc(s.image_url)}" alt="${esc(s.title || '')}" loading="eager" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
     const visualMarkup = image
-      ? `<div class="feature-visual has-image">${image}<div class="visual-circle circle-outer" aria-hidden="true"></div><div class="visual-circle circle-inner" aria-hidden="true"></div></div>`
-      : `<div class="feature-visual no-image"><div class="feature-fallback-art"><div class="fallback-emblem">✦</div><span class="fallback-kicker">${esc((s.topic || 'AETHERIA').toUpperCase())}</span></div><div class="visual-circle circle-outer" aria-hidden="true"></div><div class="visual-circle circle-inner" aria-hidden="true"></div></div>`;
+      ? `<div class="feature-visual has-image">${image}<div class="visual-circle circle-outer" aria-hidden="true"></div><div class="visual-circle circle-inner" aria-hidden="true"></div>`
+      : `<div class="feature-visual no-image"><div class="feature-fallback-art"><div class="fallback-emblem">✦</div><span class="fallback-kicker">${esc((s.topic || 'AETHERIA').toUpperCase())}</span></div><div class="visual-circle circle-outer" aria-hidden="true"></div><div class="visual-circle circle-inner" aria-hidden="true"></div>`;
+
+    const controlsMarkup = `
+      <div class="visual-tag-top">${esc((s.topic || 'GLOBAL').toUpperCase())} · DEVELOPING</div>
+      <div class="story-stack-controls" aria-label="News stack controls">
+        <div class="stack-controls-row">
+          <span class="story-stack-count" aria-live="polite">${String(i + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}</span>
+          <div class="stack-nav-btns">
+            <button type="button" class="stack-nav-btn" data-home-prev aria-label="Previous story" title="Previous story">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button type="button" class="stack-nav-btn stack-pause-btn" data-home-pause aria-label="${state.stackPaused ? 'Resume' : 'Pause'}" title="${state.stackPaused ? 'Resume' : 'Pause'}">
+              ${state.stackPaused
+                ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>`
+                : `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>`}
+            </button>
+            <button type="button" class="stack-nav-btn" data-home-next aria-label="Next story" title="Next story">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="stack-progress-bar" aria-hidden="true">
+          ${items.map((_, idx) => `<span class="stack-progress-segment ${idx === i ? 'active' : ''}"></span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
     const pub = s.latest_published || s.published;
     const sourceMeta = [source, eventTime(s)].filter(Boolean).join(' · ');
-    return `<article class="hero-card hero-feature">${visualMarkup}<div class="story-card"><div class="story-top"><span class="category-label">${esc((s.topic || 'WORLD').toUpperCase())}</span><span class="story-time">${esc(eventTime(s))}</span></div><h1 class="story-title" ${langAttr(s, s.title)} ${url ? `data-source-url="${esc(url)}"` : `data-open-story="${esc(s.id || '')}"`}>${esc(s.title)}</h1><p class="story-summary" ${langAttr(s, s.description)}>${esc(s.description || s.reason || '')}</p><div class="story-source">${sourceMeta ? '<span class="source-dot"></span>' : ''}<span class="stack-source">${esc(sourceMeta)}</span></div><div class="news-published">${pub ? `Published ${esc(formatPublished(pub))}` : s.last_seen ? `Observed ${esc(formatPublished(s.last_seen))}` : ''}</div><div class="hero-action-row">${actionTools(s)}${url ? `<button class="btn-primary" type="button" data-source-url="${esc(url)}">Read source →</button>` : `<button class="btn-primary" type="button" data-open-story="${esc(s.id || '')}">Read story →</button>`}</div><div class="story-stack-controls" aria-label="News stack controls"><button type="button" data-home-prev>← Back</button><button type="button" data-home-pause>${state.stackPaused ? 'Resume' : 'Pause'}</button><button type="button" data-home-next>Forward →</button><span class="story-stack-count" aria-live="polite">${i + 1} / ${items.length}</span></div></div></article>`;
+    return `<article class="hero-card hero-feature">${visualMarkup}${controlsMarkup}<div class="story-card"><div class="story-top"><span class="category-label">${esc((s.topic || 'WORLD').toUpperCase())}</span><span class="story-time">${esc(eventTime(s))}</span></div><h1 class="story-title" ${langAttr(s, s.title)} ${url ? `data-source-url="${esc(url)}"` : `data-open-story="${esc(s.id || '')}"`}>${esc(s.title)}</h1><p class="story-summary" ${langAttr(s, s.description)}>${esc(s.description || s.reason || '')}</p><div class="story-source">${sourceMeta ? '<span class="source-dot"></span>' : ''}<span class="stack-source">${esc(sourceMeta)}</span></div><div class="news-published">${pub ? `Published ${esc(formatPublished(pub))}` : s.last_seen ? `Observed ${esc(formatPublished(s.last_seen))}` : ''}</div><div class="hero-action-row">${actionTools(s)}${url ? `<button class="btn-primary" type="button" data-source-url="${esc(url)}">Read source →</button>` : `<button class="btn-primary" type="button" data-open-story="${esc(s.id || '')}">Read story →</button>`}</div></div></article>`;
   }
 
   function developingHTML(items) {

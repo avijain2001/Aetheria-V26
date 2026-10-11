@@ -2288,8 +2288,51 @@ def _market_json(url, timeout=5):
     return json.loads(raw.decode("utf-8","replace"))
 
 
+def _is_market_open(symbol, meta):
+    now_utc = datetime.now(timezone.utc)
+    weekday = now_utc.weekday()  # 0=Mon, ..., 5=Sat, 6=Sun
+    # Equity indices
+    if symbol.startswith("^"):
+        if weekday in (5, 6):
+            return False, "CLOSED"
+        # Indian markets (NSE / BSE): Mon-Fri 09:15 to 15:30 IST (03:45 to 10:00 UTC)
+        if symbol in ("^NSEI", "^BSESN", "^NSEBANK", "^CNXIT"):
+            mins = now_utc.hour * 60 + now_utc.minute
+            if 225 <= mins <= 600:
+                return True, "REGULAR"
+            return False, "CLOSED"
+        # US markets (S&P, Nasdaq, Dow): Mon-Fri 09:30 to 16:00 EDT (13:30 to 20:00 UTC)
+        if symbol in ("^GSPC", "^IXIC", "^DJI"):
+            mins = now_utc.hour * 60 + now_utc.minute
+            if 810 <= mins <= 1200:
+                return True, "REGULAR"
+            return False, "CLOSED"
+    # Forex pairs (INR=X, etc.): Sunday 21:00 UTC to Friday 21:00 UTC
+    if "=X" in symbol:
+        if (weekday == 4 and now_utc.hour >= 21) or weekday == 5 or (weekday == 6 and now_utc.hour < 21):
+            return False, "CLOSED"
+        return True, "REGULAR"
+    # Commodities futures (GC=F, SI=F, BZ=F): Sunday 22:00 UTC to Friday 21:00 UTC
+    if "=F" in symbol:
+        if (weekday == 4 and now_utc.hour >= 21) or weekday == 5 or (weekday == 6 and now_utc.hour < 22):
+            return False, "CLOSED"
+        return True, "REGULAR"
+    # Fallback to provider meta
+    market_state = str(meta.get("marketState") or "").upper()
+    if market_state == "REGULAR":
+        return True, "REGULAR"
+    cur_period = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+    reg_start = cur_period.get("start")
+    reg_end = cur_period.get("end")
+    if reg_start and reg_end:
+        cur_t = time.time()
+        if reg_start <= cur_t <= reg_end and weekday not in (5, 6):
+            return True, "REGULAR"
+    return False, "CLOSED"
+
+
 def _yahoo_quote(symbol):
-    url="https://query1.finance.yahoo.com/v8/finance/chart/"+urllib.parse.quote(symbol,safe="")+"?range=1d&interval=15m&includePrePost=false"
+    url="https://query1.finance.yahoo.com/v8/finance/chart/"+urllib.parse.quote(symbol,safe="")+"?range=2d&interval=15m&includePrePost=false"
     data=_market_json(url,timeout=5)
     res=((data.get("chart") or {}).get("result") or [{}])[0]
     meta=res.get("meta") or {}
@@ -2301,23 +2344,23 @@ def _yahoo_quote(symbol):
     if prev not in (None,0):
         change_num=round(float(price)-float(prev),2)
         change=change_num/float(prev)
-    # Extract intraday sparkline points
+    # Extract real intraday sparkline points
     sparkline=[]
     try:
         quote_indicators=((res.get("indicators") or {}).get("quote") or [{}])[0]
         closes=quote_indicators.get("close") or []
+        valid_closes=[round(float(c),2) for c in closes if c is not None and not (isinstance(c,float) and math.isnan(c))]
+        if len(valid_closes) >= 2:
+            sparkline = valid_closes[-16:]
     except Exception:
         sparkline = []
-    market_state = str(meta.get("marketState") or "").upper()
-    cur_period = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
-    reg_start = cur_period.get("start")
-    reg_end = cur_period.get("end")
-    is_open = (market_state == "REGULAR")
-    if not is_open and reg_start and reg_end:
-        cur_t = time.time()
-        if reg_start <= cur_t <= reg_end:
-            is_open = True
-            market_state = "REGULAR"
+    if price is not None and not (isinstance(price, float) and math.isnan(price)):
+        p_val = round(float(price), 2)
+        if not sparkline or sparkline[-1] != p_val:
+            sparkline.append(p_val)
+    if len(sparkline) < 2 and prev not in (None, 0) and price is not None:
+        sparkline = [round(float(prev), 2), round(float(price), 2)]
+    is_open, market_state = _is_market_open(symbol, meta)
     return {"symbol":symbol,"price":float(price),"change":change,"change_num":change_num,"previous_close":float(prev) if prev is not None else None,"sparkline":sparkline,"market_state":market_state,"is_open":is_open,"currency":meta.get("currency") or "","at":float(meta.get("regularMarketTime") or now())}
 
 
@@ -2343,31 +2386,33 @@ def _frankfurter_rates():
 
 
 def _bullion_prices():
-    # Oropocket's public India endpoint is used only as a public quote source when it returns a usable payload.
     out=[]
-    try:
-        data=_market_json("https://api.oropocket.com/public/prices",timeout=5)
-        blob=data.get("data") if isinstance(data,dict) else data
-        if isinstance(blob,dict):
-            blob=[blob]
-        if isinstance(blob,list):
-            for x in blob:
-                name=str((x.get("name") or x.get("metal") or x.get("symbol") or "")).lower()
-                val=x.get("sell") or x.get("price") or x.get("rate")
-                if val is None: continue
-                if "gold" in name and not any(o["symbol"]=="Gold / India quote" for o in out): out.append({"symbol":"Gold / India quote","label":"GOLD","price":float(val),"change":None,"currency":str(x.get("currency") or "INR"),"at":now()})
-                if "silver" in name and not any(o["symbol"]=="Silver / India quote" for o in out): out.append({"symbol":"Silver / India quote","label":"SILVER","price":float(val),"change":None,"currency":str(x.get("currency") or "INR"),"at":now()})
-    except Exception:
-        pass
+    # Query live Yahoo commodity futures first for gold and silver, providing real live prices,
+    # percentage changes, and real intraday sparklines.
+    for sym, label, display_name in (("GC=F", "Gold / global futures", "GOLD"), ("SI=F", "Silver / global futures", "SILVER")):
+        try:
+            q = _yahoo_quote(sym)
+            q["symbol"] = label
+            q["label"] = display_name
+            out.append(q)
+        except Exception:
+            pass
     if not out:
-        for sym,label in (("GC=F","Gold / global futures"),("SI=F","Silver / global futures")):
-            try:
-                q=_yahoo_quote(sym)
-                q["symbol"]=label
-                q["label"]="GOLD" if "Gold" in label else "SILVER"
-                out.append(q)
-            except Exception:
-                pass
+        # Fallback to Oropocket spot quotes if futures query is unreachable
+        try:
+            data=_market_json("https://api.oropocket.com/public/prices",timeout=5)
+            blob=data.get("data") if isinstance(data,dict) else data
+            if isinstance(blob,dict):
+                blob=[blob]
+            if isinstance(blob,list):
+                for x in blob:
+                    name=str((x.get("name") or x.get("metal") or x.get("symbol") or "")).lower()
+                    val=x.get("sell") or x.get("price") or x.get("rate")
+                    if val is None: continue
+                    if "gold" in name and not any(o["symbol"]=="Gold / India quote" for o in out): out.append({"symbol":"Gold / India quote","label":"GOLD","price":float(val),"change":None,"currency":str(x.get("currency") or "INR"),"at":now()})
+                    if "silver" in name and not any(o["symbol"]=="Silver / India quote" for o in out): out.append({"symbol":"Silver / India quote","label":"SILVER","price":float(val),"change":None,"currency":str(x.get("currency") or "INR"),"at":now()})
+        except Exception:
+            pass
     return out
 
 
@@ -4694,9 +4739,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200,{"ok":True,**d},send_body=send_body); return
         if path=="/api/future":
             self.send_json(200,{"ok":True,"events":future_watch()},send_body=send_body); return
-        if path in ("/api/health", "/health", "/api/ready"):
+        if path=="/api/ready":
             with SNAPSHOT_LOCK: ready=bool(SNAPSHOT.get("events"))
-            self.send_json(200,{"ok":True,"status":"healthy","ready":ready,"version":VERSION,"snapshot_revision":SNAPSHOT.get("revision",0),"events":len(SNAPSHOT.get("events",[]))},send_body=send_body); return
+            self.send_json(200,{"ok":ready,"version":VERSION,"snapshot_revision":SNAPSHOT.get("revision",0),"events":len(SNAPSHOT.get("events",[]))},send_body=send_body); return
         if path=="/api/market":
             self.send_json(200,{"ok":True,**request_market_refresh(force=False)},send_body=send_body); return
         if path=="/api/intelligence/status":

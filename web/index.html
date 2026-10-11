@@ -2203,39 +2203,110 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   align-items:center;
   margin-bottom:24px;
 }
-.hero-feature .story-stack-controls{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  margin:0;
-  padding:0;
-}
-/* Premium Stack Controls */
-.hero-feature .story-stack-controls button {
-  background: linear-gradient(135deg, var(--surface), var(--surface-2));
-  border: 1px solid color-mix(in srgb, var(--cyan) 30%, var(--line));
-  padding: 8px 18px;
-  border-radius: 24px;
-  font-size: 11px;
-  color: var(--text);
+.hero-feature .visual-tag-top {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  z-index: 10;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
-  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.75);
   text-transform: uppercase;
+  pointer-events: none;
 }
-.hero-feature .story-stack-controls button:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--cyan) 10%, var(--surface)), var(--surface-2));
-  border-color: var(--cyan);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--cyan) 20%, transparent), inset 0 1px 0 rgba(255,255,255,0.12);
-  transform: translateY(-1px);
+.hero-feature .feature-visual.has-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 12, 16, 0.5) 0%, transparent 40%, rgba(6, 12, 16, 0.75) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+.hero-feature .story-stack-controls {
+  position: absolute !important;
+  bottom: 20px !important;
+  left: 24px !important;
+  right: 24px !important;
+  z-index: 10 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  pointer-events: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+.hero-feature .stack-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 .hero-feature .story-stack-count {
-  margin-left: auto;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.85);
   letter-spacing: 0.08em;
+  font-family: var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+.hero-feature .stack-nav-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-feature .stack-nav-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(10, 20, 24, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  text-transform: none !important;
+  flex: none !important;
+}
+.hero-feature .stack-nav-btn:hover {
+  border-color: var(--cyan, #58e3aa) !important;
+  color: var(--cyan, #58e3aa) !important;
+  background: rgba(88, 227, 170, 0.2) !important;
+  box-shadow: 0 0 12px rgba(88, 227, 170, 0.4) !important;
+  transform: translateY(-1px) scale(1.06) !important;
+}
+.hero-feature .stack-nav-btn:active {
+  transform: scale(0.92) !important;
+}
+.hero-feature .stack-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 200px;
+  height: 4px;
+}
+.hero-feature .stack-progress-segment {
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+.hero-feature .stack-progress-segment.active {
+  height: 2.5px;
+  background: var(--cyan, #58e3aa);
+  box-shadow: 0 0 8px rgba(88, 227, 170, 0.7);
 }
 
 /* Developing: each row gets a real content box; long titles cannot escape the fixed sidebar. */
@@ -2422,20 +2493,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 .hero-action-row .news-card-action:hover,.hero-action-row .news-card-action:focus-visible{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px var(--accent-soft);outline:none}
 .hero-action-row .news-card-action.following{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .hero-action-row .btn-primary{margin:0;padding:10px 14px;white-space:nowrap}
-.hero-feature .story-stack-controls{
-  position:static;
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:8px;
-  width:100%;
-  margin:auto 0 0;
-  padding:12px 0 0;
-  border-top:1px solid var(--line);
-}
-.hero-feature .story-stack-controls button{height:36px;min-width:76px;padding:0 11px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);font-size:10px}
-.hero-feature .story-stack-controls button:hover,.hero-feature .story-stack-controls button:focus-visible{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);outline:none}
-.hero-feature .story-stack-count{margin-left:auto;min-width:48px;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
+
 
 .news-card-actions{display:inline-flex;align-items:center;justify-content:flex-end;gap:5px;margin:0;vertical-align:middle;flex:0 0 auto}
 .news-card-action{width:36px;height:36px;min-width:36px;min-height:36px;padding:0;border:1px solid var(--line-strong);border-radius:50%;background:var(--panel-solid);color:var(--ink);display:inline-grid;place-items:center;font-size:16px;line-height:1;font-weight:800;cursor:pointer;transition:color .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease}
@@ -2493,9 +2551,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   .hero-action-row .news-card-action{width:44px;height:44px;min-width:44px;min-height:44px}
   .hero-action-row .news-card-action-label{font-size:11px}
   .hero-action-row .btn-primary{min-height:44px;padding:0 12px}
-  .hero-feature .story-stack-controls{gap:6px;padding-top:10px}
-  .hero-feature .story-stack-controls button{height:38px;min-width:0;flex:1 1 0;padding:0 7px;font-size:9px}
-  .hero-feature .story-stack-count{flex:0 0 auto;min-width:42px;font-size:9px}
+
   .news-card-actions{gap:4px}
   .news-card-action{width:44px;height:44px;min-width:44px;min-height:44px}
   .news-card-action.related{font-size:16px}
@@ -3721,6 +3777,127 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   .latest-main h3 {
     font-size: 14px !important;
   }
+/* --- Sleek Minimal Stack Controls Matching Screenshot 2 --- */
+.hero-feature .visual-tag-top {
+  position: absolute !important;
+  top: 20px !important;
+  left: 24px !important;
+  z-index: 10 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  text-transform: uppercase !important;
+  pointer-events: none !important;
+}
+.hero-feature .feature-visual.has-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 12, 16, 0.5) 0%, transparent 40%, rgba(6, 12, 16, 0.75) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+.hero-feature .story-stack-controls {
+  position: absolute !important;
+  bottom: 20px !important;
+  left: 24px !important;
+  right: 24px !important;
+  z-index: 10 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  pointer-events: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+.hero-feature .stack-controls-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+.hero-feature .story-stack-count {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  letter-spacing: 0.08em !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-variant-numeric: tabular-nums !important;
+  margin: 0 !important;
+}
+.hero-feature .stack-nav-btns {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.hero-feature .stack-nav-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(10, 20, 24, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  text-transform: none !important;
+  flex: none !important;
+}
+.hero-feature .stack-nav-btn:hover {
+  border-color: var(--cyan, #58e3aa) !important;
+  color: var(--cyan, #58e3aa) !important;
+  background: rgba(88, 227, 170, 0.2) !important;
+  box-shadow: 0 0 12px rgba(88, 227, 170, 0.4) !important;
+  transform: translateY(-1px) scale(1.06) !important;
+}
+.hero-feature .stack-nav-btn:active {
+  transform: scale(0.92) !important;
+}
+.hero-feature .stack-progress-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  max-width: 200px !important;
+  height: 4px !important;
+}
+.hero-feature .stack-progress-segment {
+  flex: 1 !important;
+  height: 2px !important;
+  border-radius: 2px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s ease !important;
+}
+.hero-feature .stack-progress-segment.active {
+  height: 2.5px !important;
+  background: var(--cyan, #58e3aa) !important;
+  box-shadow: 0 0 8px rgba(88, 227, 170, 0.7) !important;
+}
+@media (max-width: 720px) {
+  .hero-feature .story-stack-controls {
+    bottom: 14px !important;
+    left: 16px !important;
+    right: 16px !important;
+    gap: 8px !important;
+  }
+  .hero-feature .visual-tag-top {
+    top: 14px !important;
+    left: 16px !important;
+  }
+  .hero-feature .stack-progress-bar {
+    max-width: 160px !important;
+  }
+}
 }
 </style>
 </head>
