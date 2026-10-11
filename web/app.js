@@ -153,7 +153,7 @@
     const followTitle = following ? 'Following this story (click to unfollow)' : 'Follow this story';
     return `<span class="news-card-actions" role="group" aria-label="Story actions">
       <span class="signature-action"><button type="button" class="news-card-action ${following ? 'following' : ''}" data-follow-event="${esc(eid)}" aria-label="${followTitle}" title="${followTitle}"><span class="news-card-action-icon">${following ? '✓' : '+'}</span></button><span class="news-card-action-label">${followLabel}</span></span>
-      ${isSchedule ? '' : `<span class="signature-action"><button type="button" class="news-card-action related" data-related-event="${esc(eid)}" aria-label="Aetheria Read" title="Aetheria Read"><span class="news-card-action-icon">◎</span></button><span class="news-card-action-label">Read</span></span>`}
+      ${isSchedule ? '' : `<span class="signature-action"><button type="button" class="news-card-action related" data-related-event="${esc(eid)}" aria-label="Aetheria intelligence" title="Aetheria intelligence"><span class="news-card-action-icon">◎</span></button><span class="news-card-action-label">Aetheria</span></span>`}
     </span>`;
   }
 
@@ -1775,8 +1775,19 @@
     $('marketsLink')?.addEventListener('click', () => navigate('Markets'));
   }
 
+  function updateLiveClock() {
+    const el = $('topbarLiveClock');
+    if (!el) return;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    el.textContent = `${dateStr} · ${timeStr}`;
+  }
+
   function init() {
     initAppearance(); initNavigation();
+    updateLiveClock();
+    setInterval(updateLiveClock, 1000);
     try {
       const cached = localStorage.getItem('aetheria-cached-markets');
       if (cached) {

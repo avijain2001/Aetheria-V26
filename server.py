@@ -2288,46 +2288,16 @@ def _market_json(url, timeout=5):
     return json.loads(raw.decode("utf-8","replace"))
 
 
-def _is_market_open(symbol, meta):
-    now_utc = datetime.now(timezone.utc)
-    weekday = now_utc.weekday()  # 0=Mon, ..., 5=Sat, 6=Sun
-    # Equity indices
-    if symbol.startswith("^"):
-        if weekday in (5, 6):
-            return False, "CLOSED"
-        # Indian markets (NSE / BSE): Mon-Fri 09:15 to 15:30 IST (03:45 to 10:00 UTC)
-        if symbol in ("^NSEI", "^BSESN", "^NSEBANK", "^CNXIT"):
-            mins = now_utc.hour * 60 + now_utc.minute
-            if 225 <= mins <= 600:
-                return True, "REGULAR"
-            return False, "CLOSED"
-        # US markets (S&P, Nasdaq, Dow): Mon-Fri 09:30 to 16:00 EDT (13:30 to 20:00 UTC)
-        if symbol in ("^GSPC", "^IXIC", "^DJI"):
-            mins = now_utc.hour * 60 + now_utc.minute
-            if 810 <= mins <= 1200:
-                return True, "REGULAR"
-            return False, "CLOSED"
-    # Forex pairs (INR=X, etc.): Sunday 21:00 UTC to Friday 21:00 UTC
-    if "=X" in symbol:
-        if (weekday == 4 and now_utc.hour >= 21) or weekday == 5 or (weekday == 6 and now_utc.hour < 21):
-            return False, "CLOSED"
-        return True, "REGULAR"
-    # Commodities futures (GC=F, SI=F, BZ=F): Sunday 22:00 UTC to Friday 21:00 UTC
-    if "=F" in symbol:
-        if (weekday == 4 and now_utc.hour >= 21) or weekday == 5 or (weekday == 6 and now_utc.hour < 22):
-            return False, "CLOSED"
-        return True, "REGULAR"
-    # Fallback to provider meta
-    market_state = str(meta.get("marketState") or "").upper()
-    if market_state == "REGULAR":
-        return True, "REGULAR"
+def _is_market_open(meta):
+    cur_t = time.time()
     cur_period = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
     reg_start = cur_period.get("start")
     reg_end = cur_period.get("end")
-    if reg_start and reg_end:
-        cur_t = time.time()
-        if reg_start <= cur_t <= reg_end and weekday not in (5, 6):
-            return True, "REGULAR"
+    market_state = str(meta.get("marketState") or "").upper()
+    if market_state == "REGULAR":
+        return True, "REGULAR"
+    if reg_start and reg_end and reg_start <= cur_t <= reg_end:
+        return True, "REGULAR"
     return False, "CLOSED"
 
 
@@ -2360,7 +2330,7 @@ def _yahoo_quote(symbol):
             sparkline.append(p_val)
     if len(sparkline) < 2 and prev not in (None, 0) and price is not None:
         sparkline = [round(float(prev), 2), round(float(price), 2)]
-    is_open, market_state = _is_market_open(symbol, meta)
+    is_open, market_state = _is_market_open(meta)
     return {"symbol":symbol,"price":float(price),"change":change,"change_num":change_num,"previous_close":float(prev) if prev is not None else None,"sparkline":sparkline,"market_state":market_state,"is_open":is_open,"currency":meta.get("currency") or "","at":float(meta.get("regularMarketTime") or now())}
 
 

@@ -3800,13 +3800,15 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 }
 .hero-feature .story-stack-controls {
   position: absolute !important;
-  bottom: 20px !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
   left: 24px !important;
   right: 24px !important;
   z-index: 10 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
+  gap: 12px !important;
   pointer-events: auto !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -3885,7 +3887,9 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
 }
 @media (max-width: 720px) {
   .hero-feature .story-stack-controls {
-    bottom: 14px !important;
+    top: 50% !important;
+    bottom: auto !important;
+    transform: translateY(-50%) !important;
     left: 16px !important;
     right: 16px !important;
     gap: 8px !important;
@@ -3896,6 +3900,53 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
   }
   .hero-feature .stack-progress-bar {
     max-width: 160px !important;
+  }
+  .hero-feature .hero-action-row {
+    margin-top: auto !important;
+    padding-top: 12px !important;
+  }
+}
+
+/* Enlarge Hero Headline & Move Actions to Bottom */
+.hero-feature .story-title {
+  font-size: clamp(28px, 2.5vw, 42px) !important;
+  line-height: 1.14 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  margin: 12px 0 10px !important;
+}
+.hero-feature .hero-action-row {
+  margin-top: auto !important;
+  margin-bottom: 0 !important;
+  padding-top: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+}
+
+/* Subtle Live System Clock in Topbar */
+.topbar-live-clock {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--ink-muted);
+  opacity: 0.85;
+  white-space: nowrap;
+  padding: 4px 11px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-variant-numeric: tabular-nums;
+  margin-right: 6px;
+  user-select: none;
+}
+
+@media (max-width: 900px) {
+  .topbar-live-clock {
+    display: none !important;
   }
 }
 }
@@ -3933,6 +3984,7 @@ body[data-mode="light"] .bottom-nav, body[data-mode="light"] .bottom-nav-inner {
     </nav>
     
     <div class="top-actions">
+      <div class="topbar-live-clock" id="topbarLiveClock" aria-label="Current date and time" title="Live system date and time"></div>
       <button class="action-btn" id="searchBtn" aria-label="Search">⌕</button>
       <button class="action-btn" id="themeBtn" aria-label="Appearance">☼</button>
       
